@@ -1,0 +1,5 @@
+DEF ROSCLOCK RosClock {
+  translation 0.8 0.76 -2.3
+  rotation 0 1 0 3.14159
+  controller "clockController"
+}

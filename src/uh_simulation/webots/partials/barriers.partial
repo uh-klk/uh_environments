@@ -1,0 +1,45 @@
+DEF BARRIERS Solid {
+  children [
+    Solid {
+      translation 3 0.2 0.65
+      children [
+        DEF BARRIER Shape {
+          appearance Appearance {
+            material Material {
+              ambientIntensity 0.9
+              diffuseColor 1 0 0
+              transparency 0.6
+            }
+          }
+          geometry Box {
+            size 1 0.4 0.1
+          }
+        }
+      ]
+      boundingObject USE BARRIER
+    }
+    Solid {
+      translation 0.8 0.2 -1.95
+      children [
+        USE BARRIER
+      ]
+      boundingObject USE BARRIER
+    }
+    Solid {
+      translation 1.4 0.2 -2.5
+      rotation 0 1 0 1.5708
+      children [
+        USE BARRIER
+      ]
+      boundingObject USE BARRIER
+    }
+    Solid {
+      translation 0.2 0.2 -2.5
+      rotation 0 1 0 1.5708
+      children [
+        USE BARRIER
+      ]
+      boundingObject USE BARRIER
+    }
+  ]
+}

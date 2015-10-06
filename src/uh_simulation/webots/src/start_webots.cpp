@@ -38,8 +38,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "ros/ros.h"
-#include <iostream> // stringstream
+#include <ros/ros.h>
+#include <iostream>
+#include <fstream>
+#include <cstdio>
+#include <vector>
+#include <string>
+
+using std::string;
+using std::vector;
 
 /*
  Define Webots executable name.
@@ -47,74 +54,128 @@
  Prefix with 'optirun' for Linux NVidia Bumblebee graphics driver
 
  Webots command line arguments:
-	SYNOPSIS: webots [options] [worldfile]
-	OPTIONS:
-	  --minimize                  minimize Webots window on startup
-	  --mode=<mode>               choose startup mode (overrides
-								  application preferences)
-								  argument <mode> must be one of:
-								  pause, realtime, run or fast
-								  (Webots PRO is required to use:
-								  --mode==run or --mode=fast)
-	  --help                      display this help message and exit
-	  --sysinfo                   display information of the system and
-								  exit
-	  --version                   display version information and exit
-	  --uuid                      display the UUID of the computer and exit
-	  --stdout                    redirect the controller stdout to the
-								  terminal
-	  --stderr                    redirect the controller stderr to the
-								  terminal
-	  --disable-modules-download  skip the check for module updates
-	  --force-modules-download    automatically download module updates
-								  (if any) at startup
-	  --start-streaming-server    starts the Webots streaming server
-								  (Webots PRO is required)
-		[="key[=value];..."]         parameters may be given as an option:
-									   port=1234 : starts the streaming
-												   server on port 1234
+ SYNOPSIS: webots [options] [worldfile]
+ OPTIONS:
+ --minimize                  minimize Webots window on startup
+ --mode=<mode>               choose startup mode (overrides
+ application preferences)
+ argument <mode> must be one of:
+ pause, realtime, run or fast
+ (Webots PRO is required to use:
+ --mode==run or --mode=fast)
+ --help                      display this help message and exit
+ --sysinfo                   display information of the system and
+ exit
+ --version                   display version information and exit
+ --uuid                      display the UUID of the computer and exit
+ --stdout                    redirect the controller stdout to the
+ terminal
+ --stderr                    redirect the controller stderr to the
+ terminal
+ --disable-modules-download  skip the check for module updates
+ --force-modules-download    automatically download module updates
+ (if any) at startupsystem
+ --start-streaming-server    starts the Webots streaming server
+ (Webots PRO is required)
+ [="key[=value];..."]         parameters may be given as an option:
+ port=1234 : starts the streaming
+ server on port 1234
 
-   See: http://www.cyberbotics.com/dvd/common/doc/webots/guide/section2.2.html
+ See: http://www.cyberbotics.com/dvd/common/doc/webots/guide/section2.2.html
  */
 
 #define WEBOTS_EXECUTABLE "webots"
-//#define WEBOTS_EXECUTABLE "optirun webots --mode=run"
 
 //----------------------------------------------------------------------------//
 
 int main(int argc, char **argv) {
-	// node name: webots
 	ros::init(argc, argv, "webots");
+	int exitCode;
 
-	if (argc == 1) {
-		// no additional arguments, start Webots with previously opened world
-		ROS_INFO("Starting Webots simulator... \n");
-		if (system(WEBOTS_EXECUTABLE)) {
-		}
-	} else {
-		// additional arguments:
-		// argv[0] is full path to this ROS Node
-		// argv[1] is full path to world file
-		ROS_INFO("Starting Webots simulator... ");
-		ROS_INFO("Loading world: %s \n", argv[1]);
-		std::stringstream ss;
-		ss << WEBOTS_EXECUTABLE;
-
-		// Add any additional arguments
-		for(int i = 2; i < argc; i++) {
-			ss << " " << argv[i];
-		}
-
-		// Add world file
-		ss << " " << argv[1];
-
-		if (system(ss.str().c_str())) {
-		}
+	string webots_executable;
+	if (!ros::param::get("~webots", webots_executable)) {
+		webots_executable = WEBOTS_EXECUTABLE;
 	}
 
-	// No need to ros::spin()
-	// When we quit Webots, ROS will register
-	// that the webots node is shutting down.
-	return 0;
+	string worldPath;
+	ros::param::get("~world", worldPath);
+
+	string mode;
+	ros::param::get("~mode", mode);
+
+	vector<string> partials;
+	ros::param::get("~partials", partials);
+
+	ROS_INFO("Starting Webots simulator...");
+
+	string mergedPath;
+	if (!partials.empty()) {
+		ROS_INFO("Merging %d partials...", (int )partials.size());
+
+		// Merged file needs to be in the same dir as the world for webots protos to load
+		mergedPath = worldPath + ".merged";
+		std::ofstream mergedFile(mergedPath.c_str(),
+				std::fstream::out | std::fstream::trunc);
+		{
+			std::ifstream currentFile(worldPath.c_str());
+			mergedFile << currentFile.rdbuf();
+			currentFile.close();
+		}
+
+		for (vector<string>::iterator it = partials.begin();
+				it != partials.end(); ++it) {
+			if (it->find('/') != string::npos) {
+				ROS_INFO("Adding file: %s",
+						it->substr(it->rfind('/') + 1, it->length() - 1).c_str());
+			} else if (it->find('\\') != string::npos) {
+				ROS_INFO("Adding file: %s",
+						it->substr(it->rfind('\\') + 1, it->length() - 1).c_str());
+			} else {
+				ROS_INFO("Adding file: %s", it->c_str());
+			}
+			std::ifstream currentFile(it->c_str());
+			mergedFile << currentFile.rdbuf();
+			currentFile.close();
+		}
+
+		mergedFile.close();
+	}
+
+	std::stringstream ss;
+	ss << webots_executable;
+
+	// Set run mode
+	if (!mode.empty()) {
+		ss << " --mode=" << mode;
+	}
+
+	// Add any additional arguments
+	string args;
+	if (ros::param::get("~args", args)) {
+		ss << " " << args;
+	}
+
+	// Add world file
+	if (!mergedPath.empty()) {
+		ROS_INFO("Loading merged world: %s", mergedPath.c_str());
+		ss << " " << mergedPath;
+	} else if (!worldPath.empty()) {
+		ROS_INFO("Loading world: %s", worldPath.c_str());
+		ss << " " << worldPath;
+	} else {
+		ROS_INFO("Loading default world");
+	}
+
+	// Launch Webots
+	ROS_INFO("CMD: %s", ss.str().c_str());
+	exitCode = system(ss.str().c_str());
+
+	// Clean up temp files
+	if (mergedPath.length() > 0) {
+		ROS_INFO("Removing merged world file");
+		std::remove(mergedPath.c_str());
+	}
+
+	return exitCode;
 }
 

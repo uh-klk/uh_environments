@@ -1,0 +1,41 @@
+DEF Sunflower Pioneer3DX {
+  rotation 0 1 0 -1.57079
+  name "sunflower1-1"
+  controller "sunflowerController"
+  extensionSlot [
+    sunflower_shell {
+      headSlot [
+        sunflower_neck {
+          neck_endpoint [
+            sunflower_head {
+            }
+          ]
+          rotation 0 1 0 -1.5707
+        }
+      ]
+      traySlot [
+        sunflower_tray {
+        }
+      ]
+      lightSlot [
+        sunflower_lightpanel {
+        }
+      ]
+    }
+    DEF SENSORS Group {
+      children [
+        GPS {
+        }
+        Compass {
+        }
+        Hokuyo_URG04LXUG01 {
+          translation 0 0.2 -0.15
+          name "front_laser"
+          noise 0.001
+        }
+      ]
+    }
+    DEF EXTENSIONS Group {
+    }
+  ]
+}
