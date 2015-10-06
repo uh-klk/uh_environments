@@ -67,6 +67,9 @@ target/
 .cproject
 .settings/
 
+# Webots
+*.wbproj
+
 # Catkin_build
 catkin/
 catkin_generated/
