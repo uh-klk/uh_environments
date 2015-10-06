@@ -1,0 +1,307 @@
+<?xml version="1.0"?>
+<robot name="sf11"
+	xmlns:controller="http://playerstage.sourceforge.net/gazebo/xmlschema/#controller"
+	xmlns:interface="http://playerstage.sourceforge.net/gazebo/xmlschema/#interface"
+	xmlns:sensor="http://playerstage.sourceforge.net/gazebo/xmlschema/#sensor"
+	xmlns:xacro="http://ros.org/wiki/xacro">
+
+	<xacro:include filename="$(find sf_robot_description)/urdf/sensors/hokuyo_laser.xacro" />
+
+	<link name="base_link">
+	</link>
+
+	<xacro:macro name="wheel" params="name parent reflect *origin">
+		<link name="${parent}_${name}_wheel">
+			<inertial>
+				<mass value="0.5" />
+				<origin xyz="0 0 0" rpy="${-3.1415927/2} 0 0" />
+				<inertia ixx="0.012411765597" ixy="0" ixz="0" iyy="0.015218160428"
+					iyz="0" izz="0.011763977943" />
+			</inertial>
+			<visual name="${parent}_${name}_wheel_visual">
+				<origin xyz="0 0 0" rpy="${-3.1415927/2} 0 0" />
+				<geometry name="${parent}_${name}_wheel_geom">
+					<cylinder radius="0.1" length="0.02" />
+				</geometry>
+				<material name="WheelBlack">
+					<color rgba="0.117 0.117 0.117 1" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="${-3.1415927/2} 0 0" />
+				<geometry name="${parent}_${name}_wheel_geom">
+					<cylinder radius="0.1" length="0.02" />
+				</geometry>
+			</collision>
+		</link>
+		<gazebo reference="${parent}_${name}_wheel">
+			<material value="Gazebo/Black" />
+		</gazebo>
+
+		<joint name="${parent}_${name}_wheel_joint" type="continuous">
+			<axis xyz="0 1 0" />
+			<anchor xyz="0 0 0" />
+			<limit effort="100" velocity="100" />
+			<dynamics damping="0.0" friction="0.0" />
+			<insert_block name="origin" />
+			<parent link="${parent}_link" />
+			<child link="${parent}_${name}_wheel" />
+		</joint>
+
+		<transmission name="${parent}_${name}_wheel_trans">
+			<type>transmission_interface/SimpleTransmission</type>
+			<joint name="${parent}_${name}_wheel_joint">
+				<hardwareInterface>EffortJointInterface</hardwareInterface>
+			</joint>
+			<actuator name="${parent}_${name}_wheel_motor">
+				<hardwareInterface>EffortJointInterface</hardwareInterface>
+				<mechanicalReduction>${reflect * (624/35) * (80/19)}</mechanicalReduction>
+			</actuator>
+		</transmission>
+	</xacro:macro>
+
+	<xacro:macro name="torso" params="name parent *origin">
+		<joint name="${name}_joint" type="fixed">
+			<insert_block name="origin" />
+			<parent link="${parent}_link" />
+			<child link="${name}_link" />
+		</joint>
+		<link name="${name}_link">
+			<visual>
+				<origin xyz="0 0 0.3" rpy="0 0 0" />
+				<geometry>
+					<box size="0.2 0.3 0.6" />
+				</geometry>
+				<material name="shirt">
+					<color rgba="0.611765 0.0156863 0.0156863 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0.3" rpy="0 0 0" />
+				<geometry>
+					<box size="0.2 0.3 0.6" />
+				</geometry>
+			</collision>
+		</link>
+		<joint name="${name}_shoulders_joint" type="fixed">
+			<origin xyz="0 0 0.6" rpy="0 0 1.57079" />
+			<parent link="${name}_link" />
+			<child link="${name}_shoulders_link" />
+		</joint>
+		<link name="${name}_shoulders_link">
+			<visual>
+				<origin xyz="0 0 0" rpy="0 1.57079 0" />
+				<geometry>
+					<cylinder length="0.6" radius="0.1" />
+				</geometry>
+				<material name="shirt">
+					<color rgba="0.611765 0.0156863 0.0156863 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 1.57079 0" />
+				<geometry>
+					<cylinder length="0.6" radius="0.1" />
+				</geometry>
+			</collision>
+		</link>
+		<gazebo reference="${name}_link">
+			<material>Gazebo/Red</material>
+		</gazebo>
+		<xacro:arm name="${name}_arm_right" parent="${name}_shoulders">
+			<origin rpy="0 0 0" xyz="0.23 0 -0.05" />
+		</xacro:arm>
+		<xacro:arm name="${name}_arm_left" parent="${name}_shoulders">
+			<origin rpy="0 0 0" xyz="-0.23 0 -0.05" />
+		</xacro:arm>
+		<xacro:head name="${name}_head" parent="${name}_shoulders">
+			<origin rpy="0 0 0" xyz="0 0 0.07" />
+		</xacro:head>
+	</xacro:macro>
+
+	<xacro:macro name="head" params="name parent *origin">
+		<joint name="${name}_bottom_joint" type="fixed">
+			<insert_block name="origin" />
+			<parent link="${parent}_link" />
+			<child link="${name}_link" />
+		</joint>
+		<link name="${name}_link">
+		</link>
+		<joint name="${name}_joint" type="fixed">
+			<origin xyz="0 0 0.08" rpy="0 0 0" />
+			<parent link="${name}_link" />
+			<child link="${name}_bottom_link" />
+		</joint>
+		<link name="${name}_bottom_link">
+			<visual>
+				<geometry>
+					<sphere radius="0.08" />
+				</geometry>
+				<material name="skin">
+					<color rgba="1 0.803922 0.552941 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<geometry>
+					<sphere radius="0.08" />
+				</geometry>
+			</collision>
+		</link>
+		<joint name="${name}_middle_joint" type="fixed">
+			<origin xyz="0 0 0.035" rpy="0 0 0" />
+			<parent link="${name}_bottom_link" />
+			<child link="${name}_middle_link" />
+		</joint>
+		<link name="${name}_middle_link">
+			<visual>
+				<geometry>
+					<cylinder length="0.07" radius="0.08" />
+				</geometry>
+				<material name="skin">
+					<color rgba="1 0.803922 0.552941 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<geometry>
+					<cylinder length="0.07" radius="0.08" />
+				</geometry>
+			</collision>
+		</link>
+		<joint name="${name}_top_joint" type="fixed">
+			<origin xyz="0 0 0.15" rpy="0 0 0" />
+			<parent link="${name}_link" />
+			<child link="${name}_top_link" />
+		</joint>
+		<link name="${name}_top_link">
+			<visual>
+				<geometry>
+					<sphere radius="0.08" />
+				</geometry>
+				<material name="skin">
+					<color rgba="1 0.803922 0.552941 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<geometry>
+					<sphere radius="0.08" />
+				</geometry>
+			</collision>
+		</link>
+		<gazebo reference="${name}_bottom_link">
+			<material>Gazebo/Grey</material>
+		</gazebo>
+		<gazebo reference="${name}_middle_link">
+			<material>Gazebo/SmileyHappy</material>
+		</gazebo>
+		<gazebo reference="${name}_top_link">
+			<material>Gazebo/Grey</material>
+		</gazebo>
+	</xacro:macro>
+
+	<xacro:macro name="arm" params="name parent *origin">
+		<joint name="${name}_joint" type="fixed">
+			<insert_block name="origin" />
+			<parent link="${parent}_link" />
+			<child link="${name}_link" />
+		</joint>
+		<link name="${name}_link">
+			<visual>
+				<origin xyz="0 0 -0.225" rpy="0 0 0" />
+				<geometry>
+					<cylinder length="0.45" radius="0.07" />
+				</geometry>
+				<material name="skin">
+					<color rgba="1 0.803922 0.552941 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 -0.225" rpy="0 0 0" />
+				<geometry>
+					<cylinder length="0.45" radius="0.07" />
+				</geometry>
+			</collision>
+		</link>
+		<gazebo reference="${name}_link">
+			<material>Gazebo/Grey</material>
+		</gazebo>
+	</xacro:macro>
+
+	<xacro:macro name="leg" params="name parent *origin">
+		<joint name="${name}_joint" type="fixed">
+			<insert_block name="origin" />
+			<parent link="${parent}_link" />
+			<child link="${name}_link" />
+		</joint>
+		<link name="${name}_link">
+			<visual>
+				<origin xyz="0 0 0.375" rpy="0 0 0" />
+				<geometry>
+					<cylinder length="0.65" radius="0.07" />
+				</geometry>
+				<material name="blue">
+					<color rgba="0.14902 0.294118 0.560784 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0.375" rpy="0 0 0" />
+				<geometry>
+					<cylinder length="0.65" radius="0.07" />
+				</geometry>
+			</collision>
+		</link>
+		<gazebo reference="${name}_link">
+			<material>Gazebo/Blue</material>
+		</gazebo>
+	</xacro:macro>
+
+	<xacro:hokuyo_04lx_laser_ug01 name="base_laser_front"
+		parent="base" ros_topic="scan_front" update_rate="10" min_angle="-2.094"
+		max_angle="2.094">
+		<origin rpy="0 0 0" xyz="0.05 0.0 0.05" />
+	</xacro:hokuyo_04lx_laser_ug01>
+	<xacro:hokuyo_04lx_laser_ug01 name="base_laser_back"
+		parent="base" ros_topic="scan_back" update_rate="10" min_angle="-2.094"
+		max_angle="2.094">
+		<origin rpy="0 0 3.14159" xyz="-0.05 0.0 0.05" />
+	</xacro:hokuyo_04lx_laser_ug01>
+
+	<xacro:torso name="torso" parent="base">
+		<origin rpy="0 0 0" xyz="0 0 0.65" />
+	</xacro:torso>
+	<xacro:leg name="leg_right" parent="base">
+		<origin rpy="0 0 0" xyz="0 -0.1 0" />
+	</xacro:leg>
+	<xacro:leg name="leg_left" parent="base">
+		<origin rpy="0 0 0" xyz="0 0.1 0" />
+	</xacro:leg>
+
+	<xacro:wheel name="front_right" parent="base" reflect="1">
+		<origin rpy="0 0 0" xyz=" -0.1 0.18 0" />
+	</xacro:wheel>
+	<xacro:wheel name="rear_right" parent="base" reflect="1">
+		<origin rpy="0 0 0" xyz="0.1 0.18 0" />
+	</xacro:wheel>
+	<xacro:wheel name="front_left" parent="base" reflect="-1">
+		<origin rpy="0 0 0" xyz="-0.1 -0.18 0" />
+	</xacro:wheel>
+	<xacro:wheel name="rear_left" parent="base" reflect="-1">
+		<origin rpy="0 0 0" xyz=" 0.1 -0.18 0" />
+	</xacro:wheel>
+
+	<gazebo>
+		<plugin name="skid_steer_drive_controller" filename="libgazebo_ros_skid_steer_drive.so">
+			<updateRate>100.0</updateRate>
+			<robotNamespace>/</robotNamespace>
+			<leftFrontJoint>base_front_left_wheel_joint</leftFrontJoint>
+			<rightFrontJoint>base_front_right_wheel_joint</rightFrontJoint>
+			<leftRearJoint>base_back_left_wheel_joint</leftRearJoint>
+			<rightRearJoint>base_back_right_wheel_joint</rightRearJoint>
+			<wheelSeparation>0.4</wheelSeparation>
+			<wheelDiameter>0.215</wheelDiameter>
+			<robotBaseFrame>base_link</robotBaseFrame>
+			<torque>20</torque>
+			<topicName>cmd_vel</topicName>
+			<broadcastTF>false</broadcastTF>
+		</plugin>
+	</gazebo>
+</robot>

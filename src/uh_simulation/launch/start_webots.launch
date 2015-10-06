@@ -1,0 +1,7 @@
+<!-- -*- mode: XML -*- -->
+
+<launch>
+	<arg name="world" default="$(find uh_simulation)/webots/worlds/robotHouse.wbt" />
+	<arg name="mode" default="realtime" />
+	<node pkg="uh_simulation" type="start_webots" args="$(arg world) --mode=$(arg mode)" name="webots" output="screen" required="true" />
+</launch>

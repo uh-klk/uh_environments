@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package>
+	<name>uh_environments</name>
+	<version>1.0.0</version>
+	<description>University of Hertfordshire Environments</description>
+	<maintainer email="n.burke@natbur.com">Nathan Burke</maintainer>
+	<license>MIT</license>
+
+	<buildtool_depend>catkin</buildtool_depend>
+
+	<run_depend>map_server</run_depend>
+
+</package>

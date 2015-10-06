@@ -1,0 +1,12 @@
+<package>
+  <description brief="clockController">
+
+     Webots clock sync controller
+
+  </description>
+  <author>Nathan Burke</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <depend package="rospy"/>
+  <depend package="rosgraph_msgs"/>
+</package>

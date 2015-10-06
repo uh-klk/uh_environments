@@ -1,0 +1,121 @@
+#VRML_SIM V7.4.3 utf8
+# Customizable table
+# Author: fabien.rohrer@cyberbotics.com
+
+PROTO ResizeableTable [
+  field SFVec3f    translation         0 0 0
+  field SFRotation rotation            0 1 0 0
+  field SFVec3f    size                1.8 0.74 1
+  field SFVec2f    feetSize            0.1 0.1
+  field SFFloat    feetPadding         0
+  field SFFloat    frameThickness      0.05
+  field SFFloat    trayTransparency    0
+  field MFString   trayTextureUrl      "textures/wood.png"
+  field SFVec2f    trayTileSize        0.5 0.5
+  field MFString   feetTextureUrl      "textures/wood.png"
+  field SFVec2f    feetTileSize        0.5 0.5
+]
+{
+  %{
+    -- parameters check
+    local size = fields.size
+    if size.x <= 0.0 or size.y <= 0.0 or size.z <= 0.0 then -- avoid a negative values
+      size = { x = 1.0; y = 1.0; z = 1.0 }
+      io.stderr:write("'size' must contain positive values")
+    end
+
+    local feetSize = fields.feetSize
+    if feetSize.x < 0.0 or feetSize.y < 0.0 then -- avoid a negative values
+      feetSize = { x = 1.0; y = 1.0 }
+      io.stderr:write("'feetSize' must contain positive values")
+    end
+
+    local trayTileSize = fields.trayTileSize
+      if trayTileSize.x <= 0.0 or trayTileSize.y <= 0.0 then -- avoid a zero division and negative values
+        trayTileSize = { x = 1.0; y = 1.0 }
+      io.stderr:write("'trayTileSize' must contain positive values")
+    end
+
+    local feetTileSize = fields.feetTileSize
+      if feetTileSize.x <= 0.0 or feetTileSize.y <= 0.0 then -- avoid a zero division and negative values
+        feetTileSize = { x = 1.0; y = 1.0 }
+      io.stderr:write("'feetTileSize' must contain positive values")
+    end
+
+    local feetPadding = fields.feetPadding
+    if feetPadding < 0.0 then
+      io.stderr:write("'feetPadding' must be positive")
+      feetPadding = 0.0
+    end
+
+    local frameThickness = fields.frameThickness
+    if frameThickness <= 0.0 then
+      io.stderr:write("'frameThickness' must be positive")
+      frameThickness = 0.05
+    end
+
+    -- global stuff
+    local mainFrameSize = { x = size.x; y = frameThickness; z = size.z }
+    local feetTextureFactor = math.max(feetSize.x, feetSize.y)
+    local feetTranslation = { x = 0.5 * size.x - feetPadding - 0.5 * feetSize.x; y = 0.5 * (size.y - frameThickness); z = 0.5 * size.z - feetPadding - 0.5 * feetSize.y }
+  }%
+  Solid {
+    translation IS translation
+    rotation IS rotation
+    children [
+      # Main frame
+      SolidBox {
+        translation 0 %{= size.y - 0.5 * frameThickness }% 0
+        size %{= mainFrameSize.x }% %{= mainFrameSize.y }% %{= mainFrameSize.z }%
+        appearance Appearance {
+          material Material {
+            transparency IS trayTransparency
+          }
+          texture ImageTexture {
+            url IS trayTextureUrl
+          }
+          textureTransform TextureTransform {
+             %{ local frameTextureFactor = math.max(mainFrameSize.x, mainFrameSize.y, mainFrameSize.z) }%
+             scale %{= frameTextureFactor / trayTileSize.x }% %{= frameTextureFactor / trayTileSize.y }%
+          }
+        }
+      }
+      %{ if feetSize.x ~= 0.0 and feetSize.y ~= 0.0 then }%
+        # Foot 1
+        SolidBox {
+          translation %{= feetTranslation.x }% %{= feetTranslation.y }% %{= feetTranslation.z }%
+          size %{= feetSize.x }% %{= size.y - frameThickness }% %{= feetSize.y }%
+          appearance DEF FOOT_APPEARANCE Appearance {
+            material Material {
+            }
+            texture ImageTexture {
+              url IS feetTextureUrl
+            }
+            textureTransform TextureTransform {
+              scale %{= feetTextureFactor / feetTileSize.x }% %{= feetTextureFactor / feetTileSize.y }%
+            }
+          }
+        }
+        # Foot 2
+        SolidBox {
+          translation %{= -feetTranslation.x }% %{= feetTranslation.y }% %{= feetTranslation.z }%
+          size %{= feetSize.x }% %{= size.y - frameThickness }% %{= feetSize.y }%
+          appearance USE FOOT_APPEARANCE
+        }
+        # Foot 3
+        SolidBox {
+          translation %{= feetTranslation.x }% %{= feetTranslation.y }% %{= -feetTranslation.z }%
+          size %{= feetSize.x }% %{= size.y - frameThickness }% %{= feetSize.y }%
+          appearance USE FOOT_APPEARANCE
+        }
+        # Foot 4
+        SolidBox {
+          translation %{= -feetTranslation.x }% %{= feetTranslation.y }% %{= -feetTranslation.z }%
+          size %{= feetSize.x }% %{= size.y - frameThickness }% %{= feetSize.y }%
+          appearance USE FOOT_APPEARANCE
+        }
+      %{ end }%
+    ]
+  }
+}
+

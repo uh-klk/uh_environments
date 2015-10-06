@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<package>
+	<name>uh_simulation</name>
+	<version>1.0.0</version>
+	<description>Simulation support for UH Environments/Robots</description>
+	<maintainer email="n.burke@natbur.com">Nathan Burke</maintainer>
+	<license>MIT</license>
+
+	<buildtool_depend>catkin</buildtool_depend>
+
+	<build_depend>roscpp</build_depend>
+	
+	<!-- PersonSim Deps -->	
+	<run_depend>amcl</run_depend>
+	<run_depend>dynamixel_msgs</run_depend>
+	<run_depend>hokuyo_node</run_depend>
+	<run_depend>move_base</run_depend>
+	<run_depend>robot_state_publisher</run_depend>
+	<run_depend>topic_tools</run_depend>
+
+	<!-- Gazebo Deps -->
+	<run_depend>gazebo</run_depend>
+	<run_depend>gazebo_plugins</run_depend>
+	<run_depend>gazebo_tools</run_depend>
+	<run_depend>ivcon</run_depend>
+	<run_depend>joint_state_publisher</run_depend>
+	<run_depend>robot_state_publisher</run_depend>
+	<run_depend>xacro</run_depend>
+
+	<!-- Webots Deps -->
+	<run_depend>actionlib</run_depend>
+	<run_depend>dynamixel_msgs</run_depend>
+	<run_depend>geometry_msgs</run_depend>
+	<run_depend>move_base_msgs</run_depend>
+	<run_depend>nav_msgs</run_depend>
+	<run_depend>roscpp</run_depend>
+	<run_depend>rosgraph_msgs</run_depend>
+	<run_depend>rospy</run_depend>
+	<run_depend>sensor_msgs</run_depend>
+	<run_depend>sf_controller_msgs</run_depend>
+	<run_depend>std_msgs</run_depend>
+	<run_depend>std_msgs</run_depend>
+	<run_depend>tf</run_depend>
+
+</package>

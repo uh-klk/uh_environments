@@ -1,0 +1,87 @@
+#VRML_OBJ V7.4.3 utf8
+# Basic model of a person
+
+PROTO RosClock [  
+	field SFVec3f translation 0 0.0975 0 
+	field SFRotation rotation 0 1 0 0 
+	field SFString name "rosClock"
+	field SFString controller "void"
+	field SFString controllerArgs ""
+]
+{
+DEF ROSCLOCK Robot {
+  translation IS translation
+  rotation IS rotation
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0 0 0
+        }
+      }
+      geometry Cylinder {
+        height 0.05
+        radius 0.15
+        top FALSE
+        subdivision 24
+      }
+    }
+    Shape {
+      appearance Appearance {
+        material Material {
+        }
+        texture ImageTexture {
+          url [
+            "textures/clockFace.png"
+          ]
+          repeatS FALSE
+          repeatT FALSE
+        }
+      }
+      geometry Cylinder {
+        height 0.05
+        radius 0.15
+        side FALSE
+        subdivision 24
+      }
+    }
+    Transform {
+      translation 0 0.03 0
+      children [
+        HingeJoint {
+          jointParameters HingeJointParameters {
+            axis 0 1 0
+          }
+          device RotationalMotor {
+            name "clock_min"
+			minPosition 0
+			maxPosition 0
+          }
+          endPoint Solid {
+            children [
+              Transform {
+                translation 0 0 0.06
+                children [
+                  Shape {
+                    appearance Appearance {
+                      material Material {
+                        diffuseColor 0 0 0
+                      }
+                    }
+                    geometry Box {
+                      size 0.005 0.005 0.12
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+  name IS name
+  controller IS controller
+  controllerArgs IS controllerArgs
+}
+}

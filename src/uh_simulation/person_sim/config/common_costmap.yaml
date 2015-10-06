@@ -1,0 +1,33 @@
+
+#---(in meters)---
+footprint: [ [0.1, -0.3], [0.1, 0.3], [-0.1, 0.3], [-0.1, -0.3] ]
+
+robot_base_frame: base_link
+
+obstacle_layer:
+   observation_sources: front_laser back_laser
+   front_laser: 
+      data_type: LaserScan
+      topic: scan_front
+      marking: true
+      clearing: true
+      expected_update_rate: 0.20      
+   back_laser: 
+      data_type: LaserScan
+      topic: scan_back
+      marking: true
+      clearing: true
+      expected_update_rate: 0.20
+   obstacle_range: 2.5 #guess
+   raytrace_range: 3.0 #guess
+   enabled: true
+
+inflation_layer:
+   inflation_radius: 0.55
+   enabled: true
+
+footprint_layer:
+   enabled: true
+
+sonar_layer:
+   enabled: true
