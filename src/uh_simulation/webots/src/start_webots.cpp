@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
 
 	string mergedPath;
 	if (!partials.empty()) {
-		ROS_INFO("Merging %d partials...", (int )partials.size());
+		ROS_DEBUG("Merging %d partials...", (int )partials.size());
 
 		// Merged file needs to be in the same dir as the world for webots protos to load
 		mergedPath = worldPath + ".merged";
@@ -52,13 +52,13 @@ int main(int argc, char **argv) {
 		for (vector<string>::iterator it = partials.begin();
 				it != partials.end(); ++it) {
 			if (it->find('/') != string::npos) {
-				ROS_INFO("Adding file: %s",
+				ROS_DEBUG("Adding file: %s",
 						it->substr(it->rfind('/') + 1, it->length() - 1).c_str());
 			} else if (it->find('\\') != string::npos) {
-				ROS_INFO("Adding file: %s",
+				ROS_DEBUG("Adding file: %s",
 						it->substr(it->rfind('\\') + 1, it->length() - 1).c_str());
 			} else {
-				ROS_INFO("Adding file: %s", it->c_str());
+				ROS_DEBUG("Adding file: %s", it->c_str());
 			}
 			std::ifstream currentFile(it->c_str());
 			mergedFile << currentFile.rdbuf();
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
 	}
 
 	// Launch Webots
-	ROS_INFO("CMD: %s", ss.str().c_str());
+	ROS_DEBUG("CMD: %s", ss.str().c_str());
 	exitCode = system(ss.str().c_str());
 
 	// Clean up temp files
