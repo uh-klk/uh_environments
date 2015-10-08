@@ -1,4 +1,4 @@
-Sunflower Environments Package
+University of Hertfordshire Environments Package
 ===
 
-Unified package for navigation environments for Sunflower, used by the ```map_server```
+Unified package for navigation environments for UH Robots
