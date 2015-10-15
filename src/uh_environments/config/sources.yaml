@@ -1,0 +1,44 @@
+- type: param
+  param: sensor_data
+  marker_ns: sensors
+  label_color:
+    r: 0
+    g: 0.25
+    b: 0.25
+- type: param
+  param: location_data
+  marker_ns: locations
+  marker_type: arrow
+  marker_scale:
+    x: 0.1
+    y: 0.025
+    z: 0.005
+#- type: fixed
+#  marker_text: kitchen
+#  marker_type: arrow
+#  marker_position:
+#    x: 0.25
+#    y: -1.62
+#  marker_scale:
+#    x: 0.1
+#    y: 0.025
+#    z: 0.005
+#  marker_color:
+#    r: 0
+#    g: 0
+#    b: 0
+#  marker_orientation:
+#    theta: 2.75
+#- type: topic
+#  marker_ns: robot
+#  topic: /iha/sunflower1_1/sensors/gaze
+#  marker_text: Robot Gaze
+#  marker_type: arrow
+#  marker_scale:
+#    x: 1.0
+#    y: 0.025
+#    z: 0.025
+#  marker_color:
+#    r: 0.50
+#    g: 0.10
+#    b: 0.10

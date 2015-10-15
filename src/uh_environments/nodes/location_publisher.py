@@ -12,6 +12,7 @@ from PyKDL import Rotation
 from geometry_msgs.msg import Pose, PoseStamped, Quaternion
 from visualization_msgs.msg import MarkerArray, Marker
 import visualization_msgs
+from copy import deepcopy
 
 
 class LocationPublisher(object):
@@ -28,93 +29,89 @@ class LocationPublisher(object):
         if self._publisher:
             self._publisher.unregister()
 
+    def getMarker(self, source, id):
+        mType = source.get('marker_type', Marker.SPHERE)
+        mType = mType if not isinstance(mType, str) else getattr(Marker, mType.upper())
+        mAction = source.get('marker_action', Marker.ADD)
+        mAction = mAction if not isinstance(mType, str) else getattr(Marker, mType.upper())
+
+        marker = Marker()
+        marker.header.stamp = rospy.Time(0)
+        marker.header.frame_id = source.get('marker_frame', 'map')
+        marker.ns = source.get('marker_ns', '')
+        marker.id = int(source.get('marker_id', id))
+        marker.type = mType
+        marker.action = mAction
+
+        marker.pose.position.x = source.get('marker_position', {}).get('x', 0.0)
+        marker.pose.position.y = source.get('marker_position', {}).get('y', 0.0)
+        marker.pose.position.z = source.get('marker_position', {}).get('z', 0.0)
+        marker.pose.orientation = self._getOrientation(source.get('marker_orientation', None))
+
+        marker.scale.x = source.get('marker_scale', {}).get('x', 0.1)
+        marker.scale.y = source.get('marker_scale', {}).get('y', 0.1)
+        marker.scale.z = source.get('marker_scale', {}).get('z', 0.1)
+
+        marker.color.r = source.get('marker_color', {}).get('r', 1.0)
+        marker.color.g = source.get('marker_color', {}).get('g', 1.0)
+        marker.color.b = source.get('marker_color', {}).get('b', 1.0)
+        marker.color.a = source.get('marker_color', {}).get('a', 1.0)
+
+        marker.lifetime = rospy.Duration(source.get('marker_lifetime', 0))
+        marker.frame_locked = bool(source.get('marker_framelocked', False))
+
+        # TODO: points
+        # TODO: colors
+
+        marker.text = source.get('marker_text', '')
+
+        marker.mesh_resource = source.get('marker_mesh', '')
+        marker.mesh_use_embedded_materials = bool(source.get('marker_mesh_resources', False))
+
+        # Second (default hidden) marker as a label
+        label = copy.deepcopy(marker)
+        label.action = Marker.DELETE
+        label.ns += ('/' if label.ns else '') + 'labels'
+        label.scale.z = 0.1
+        label.pose.position.z += marker.scale.z + label.scale.z * 0.5
+        label.type = Marker.TEXT_VIEW_FACING
+        label.color.r = source.get('label_color', {}).get('r', 1.0)
+        label.color.g = source.get('label_color', {}).get('g', 1.0)
+        label.color.b = source.get('label_color', {}).get('b', 1.0)
+        label.color.a = source.get('label_color', {}).get('a', 1.0)
+
+        return marker, label
+
     def _processSources(self, sources):
         i = 0
         markers = {}
         for source in sources:
             i += 1
+            marker, label = self.getMarker(source, i)
             if not isinstance(source, dict):
                 rospy.logerr("Sources must be a dictionary list")
                 return None
+
             sourceType = source.get('type', None)
             if not sourceType:
                 rospy.logwarn("Source missing type param, skipping.  %s", source)
                 continue
-            if sourceType == 'topic':
-                topic = source.get('topic', None)
-                if not topic:
-                    rospy.logwarn("Topic source missing topic, skipping.  %s", source)
+
+            if sourceType in ['topic', 'param']:
+                data = source.get(sourceType, None)
+                if not data:
+                    rospy.logwarn("Source missing %s, skipping.  %s", source, sourceType)
                     continue
 
-                key = 'topic_%s' % (topic, )
-                self._sourceTopics[topic] = rospy.Subscriber(topic, PoseStamped, callback=self._updatePoseSource, callback_args=key)
-            elif sourceType == 'param':
-                param = source.get('param', None)
-                if not param:
-                    rospy.logwarn("Param source missing param, skipping.  %s", source)
-                    continue
-
-                key = 'param_%s' % (param, )
-                self._sourceParams[key] = param
+                key = '%s_%s' % (sourceType, data)
+                if sourceType == topic:
+                    self._sourceTopics[data] = rospy.Subscriber(data, PoseStamped, callback=self._updatePoseSource, callback_args=key)
+                elif sourceType == 'param':
+                    self._sourceParams[data] = (marker, label)
             elif sourceType == 'fixed':
                 key = 'fixed_%s' % (i, )
-
-            marker = Marker()
-
-            marker.header.stamp = rospy.Time(0)
-            marker.header.frame_id = source.get('marker_frame', 'map')
-
-            marker.ns = source.get('marker_ns', '')
-            marker.id = int(source.get('marker_id', i))
-            mType = source.get('marker_type', Marker.SPHERE)
-            if isinstance(mType, str):
-                mType = getattr(Marker, mType.upper())
-            marker.type = mType
-
-            mAction = source.get('marker_action', Marker.ADD)
-            if isinstance(mType, str):
-                mType = getattr(Marker, mType.upper())
-            marker.action = mAction
-
-            marker.pose.position.x = source.get('marker_position', {}).get('x', 0.0)
-            marker.pose.position.y = source.get('marker_position', {}).get('y', 0.0)
-            marker.pose.position.z = source.get('marker_position', {}).get('z', 0.0)
-
-            marker.pose.orientation = self._getOrientation(source.get('marker_orientation', None))
-
-            marker.scale.x = source.get('marker_scale', {}).get('x', 0.1)
-            marker.scale.y = source.get('marker_scale', {}).get('y', 0.1)
-            marker.scale.z = source.get('marker_scale', {}).get('z', 0.1)
-
-            marker.color.r = source.get('marker_color', {}).get('r', 1.0)
-            marker.color.g = source.get('marker_color', {}).get('g', 1.0)
-            marker.color.b = source.get('marker_color', {}).get('b', 1.0)
-            marker.color.a = source.get('marker_color', {}).get('a', 1.0)
-
-            marker.lifetime = rospy.Duration(source.get('marker_lifetime', 0))
-            marker.frame_locked = bool(source.get('marker_framelocked', False))
-
-            # TODO: points
-            # TODO: colors
-
-            marker.text = source.get('marker_text', '')
-
-            marker.mesh_resource = source.get('marker_mesh', '')
-            marker.mesh_use_embedded_materials = bool(source.get('marker_mesh_resources', False))
-            markers[key] = marker
-
-            if marker.text and marker.type != Marker.TEXT_VIEW_FACING:
-                # Add second marker as a label
-                m2 = copy.deepcopy(marker)
-                m2.ns += ('/' if m2.ns else '') + 'labels'
-                m2.scale.z = 0.1
-                m2.pose.position.z += marker.scale.z + m2.scale.z * 0.5
-                m2.type = Marker.TEXT_VIEW_FACING
-                m2.color.r = source.get('label_color', {}).get('r', 1.0)
-                m2.color.g = source.get('label_color', {}).get('g', 1.0)
-                m2.color.b = source.get('label_color', {}).get('b', 1.0)
-                m2.color.a = source.get('label_color', {}).get('a', 1.0)
-            markers[key + '_label'] = m2
+                markers[key] = marker
+                markers[key + '_label'] = label
 
         return markers
 
@@ -146,31 +143,56 @@ class LocationPublisher(object):
         marker.pose = msg.pose
         marker.header = msg.header
         marker.header.frame_id = 'map'
-        if self._markers[key + '_label']:
+        if marker.text and marker.type != Marker.TEXT_VIEW_FACING:
             label = self._markers[key + '_label']
-            label.pose = copy.deepcopy(msg.pose)
-            label.pose.position.z += marker.scale.z + label.scale.z * 0.5
-            label.header.stamp = marker.header.stamp
-            label.header.frame_id = 'map'
+            label.action = Marker.ADD
+            label.pose = deepcopy(marker.pose)
+            label.pose.position.z += marker.scale.z + m2.scale.z * 0.5
+            label.header.stamp = self._markers[key].header.stamp
+        elif key + '_label' in self._markers:
+            self._markers[key + '_label'].action = Marker.DELETE
 
     def _updateParams(self):
-        for key, param in self._sourceParams.iteritems():
-            data = rospy.get_param(param, None)
-            if data:
-                self._markers[key].pose.position.x = data.get('position', {'x': self._markers[key].pose.position.x}).get('x')
-                self._markers[key].pose.position.y = data.get('position', {'y': self._markers[key].pose.position.y}).get('y')
-                self._markers[key].pose.position.z = data.get('position', {'z': self._markers[key].pose.position.z}).get('z')
+        for param, (defaultMarker, defaultLabel) in self._sourceParams.iteritems():
+            param_key = 'param_' + param
+            data = rospy.get_param(param, [])
+            data = data if isinstance(data, (list, tuple)) else (data, )
+            for key in [k for k in self._markers.keys() if k.startswith(param_key)]:
+                self._markers[key].action = Marker.DELETE
 
-                self._markers[key].pose.orientation = self._getOrientation(data.get('orientation', None))
+            for markerDict in data:
+                key = param_key + '_' + str(markerDict['id'])
+                marker = self._markers.get(key, copy.deepcopy(defaultMarker))
+                marker.action = Marker.ADD
+                marker.id = int(markerDict['id'])
+                marker.pose.position.x = markerDict.get('position', {}).get('x', marker.pose.position.x)
+                marker.pose.position.y = markerDict.get('position', {}).get('y', marker.pose.position.y)
+                marker.pose.position.z = markerDict.get('position', {}).get('z', marker.pose.position.z)
 
-                self._markers[key].scale.x = data.get('scale', {'x': self._markers[key].scale.x}).get('x')
-                self._markers[key].scale.y = data.get('scale', {'y': self._markers[key].scale.y}).get('y')
-                self._markers[key].scale.z = data.get('scale', {'z': self._markers[key].scale.z}).get('z')
+                marker.pose.orientation = self._getOrientation(markerDict.get('orientation', None))
 
-                self._markers[key].color.r = data.get('color', {'r': self._markers[key].color.r}).get('r')
-                self._markers[key].color.g = data.get('color', {'g': self._markers[key].color.g}).get('g')
-                self._markers[key].color.b = data.get('color', {'b': self._markers[key].color.b}).get('b')
-                self._markers[key].color.a = data.get('color', {'a': self._markers[key].color.a}).get('a')
+                marker.scale.x = markerDict.get('scale', {}).get('x', marker.scale.x)
+                marker.scale.y = markerDict.get('scale', {}).get('y', marker.scale.y)
+                marker.scale.z = markerDict.get('scale', {}).get('z', marker.scale.z)
+
+                marker.color.r = markerDict.get('color', {}).get('r', marker.color.r)
+                marker.color.g = markerDict.get('color', {}).get('g', marker.color.g)
+                marker.color.b = markerDict.get('color', {}).get('b', marker.color.b)
+                marker.color.a = markerDict.get('color', {}).get('a', marker.color.a)
+
+                marker.text = markerDict.get('text', '')
+
+                self._markers[key] = marker
+
+                if marker.text and marker.type != Marker.TEXT_VIEW_FACING:
+                    label = self._markers.get(key + '_label', deepcopy(defaultLabel))
+                    label.id = marker.id
+                    label.action = Marker.ADD
+                    label.text = marker.text
+                    label.pose = deepcopy(marker.pose)
+                    label.pose.position.z += marker.scale.z + label.scale.z * 0.5
+                    label.header.stamp = marker.header.stamp
+                    self._markers[key + '_label'] = label
 
     def run(self):
         rate = rospy.Rate(self._rate)
@@ -189,7 +211,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         # For debugging in the IDE
         import yaml
-        with open('../config/locations.yaml') as config:
+        with open('../config/param_sources.yaml') as config:
             configDict = yaml.load(config)
             rospy.set_param('~sources', configDict)
 
