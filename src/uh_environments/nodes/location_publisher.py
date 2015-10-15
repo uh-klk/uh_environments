@@ -104,12 +104,15 @@ class LocationPublisher(object):
                     continue
 
                 key = '%s_%s' % (sourceType, data)
-                if sourceType == topic:
+                if sourceType == 'topic':
                     self._sourceTopics[data] = rospy.Subscriber(data, PoseStamped, callback=self._updatePoseSource, callback_args=key)
+                    markers[key] = marker
+                    markers[key + '_label'] = label
                 elif sourceType == 'param':
                     self._sourceParams[data] = (marker, label)
             elif sourceType == 'fixed':
                 key = 'fixed_%s' % (i, )
+                marker.action = label.action = Marker.ADD
                 markers[key] = marker
                 markers[key + '_label'] = label
 
@@ -140,14 +143,14 @@ class LocationPublisher(object):
 
     def _updatePoseSource(self, msg, key):
         marker = self._markers[key]
+        marker.action = Marker.ADD
         marker.pose = msg.pose
         marker.header = msg.header
-        marker.header.frame_id = 'map'
         if marker.text and marker.type != Marker.TEXT_VIEW_FACING:
             label = self._markers[key + '_label']
             label.action = Marker.ADD
             label.pose = deepcopy(marker.pose)
-            label.pose.position.z += marker.scale.z + m2.scale.z * 0.5
+            label.pose.position.z += marker.scale.z + label.scale.z * 0.5
             label.header.stamp = self._markers[key].header.stamp
         elif key + '_label' in self._markers:
             self._markers[key + '_label'].action = Marker.DELETE
@@ -211,7 +214,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         # For debugging in the IDE
         import yaml
-        with open('../config/param_sources.yaml') as config:
+        with open('../config/locations.yaml') as config:
             configDict = yaml.load(config)
             rospy.set_param('~sources', configDict)
 
