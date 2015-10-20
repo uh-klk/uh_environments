@@ -34,4 +34,16 @@
     <node name="gazebo_gui" pkg="gazebo" type="gui" respawn="false" output="screen"/>
   </group>
 
+
+  <!-- Convert xacro and put on parameter server -->
+  <!--param name="sf1-1" command="$(find xacro)/xacro.py $(find sunflower)/urdf/sf1-1.xacro" /-->
+
+  <!-- spawn a robot into Gazebo -->
+  <!--node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model robot" /--> 
+  
+  <!--param testfile="$(find git)/sunflower/sf_robot/config/sf1-1.urdf" /-->
+
+  <!--node name="spawn_robot" pkg="gazebo" type="spawn_model" args="-gazebo -param robot_model -model myrobot" respawn="false" output="screen" /-->
+
+
 </launch>
