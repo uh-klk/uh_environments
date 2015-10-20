@@ -1,0 +1,12 @@
+<launch>
+	<arg name="world" default="uh-robot-house" />
+
+	<param name="world_description" command="$(find xacro)/xacro.py $(find uh_environments)/$(arg world)/urdf/world.urdf.xacro" />
+
+	<node name="world_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+		<remap from="robot_description" to="world_description" />
+		<remap from="joint_states" to="world/joint_states" />
+	</node>
+
+	<node pkg="tf" type="static_transform_publisher" name="world_link" args="0 0 -0.1 3.14159 0 0 /map world 100" />
+</launch>
