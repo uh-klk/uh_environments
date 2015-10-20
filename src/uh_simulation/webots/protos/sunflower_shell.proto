@@ -1,0 +1,152 @@
+#VRML_OBJ V7.4.3 utf8
+# Default shell for the Sunflower robot
+
+PROTO sunflower_shell [
+  field MFNode headSlot []
+  field MFNode traySlot []
+  field MFNode rArmSlot []
+  field MFNode lArmSlot []
+  field MFNode lightSlot []
+]
+{
+  Solid {
+    translation 0 0.396 0.04
+    children [
+      DEF BODY Group {
+        children [
+          DEF TOP Transform {
+            translation 0 0.245 0
+            children [
+              Shape {
+                appearance DEF PLASTIC_APPEARANCE Appearance {
+                  material Material {
+                    diffuseColor 0.98 0.98 0.9
+                  }
+                }
+                geometry Box {
+                  size 0.33 0.01 0.3
+                }
+              }
+            ]
+          }
+          DEF BOTTOM Transform {
+            translation 0 -0.245 0
+            children [
+              Shape {
+                appearance USE PLASTIC_APPEARANCE
+                geometry Box {
+                  size 0.33 0.01 0.3
+                }
+              }
+            ]
+          }
+          DEF BACK Transform {
+            translation 0 0 0.145
+            children [
+              Shape {
+                appearance USE PLASTIC_APPEARANCE
+                geometry Box {
+                  size 0.33 0.48 0.01
+                }
+              }
+            ]
+          }
+          DEF RIGHT Transform {
+            translation 0.16 0 0
+            children [
+              Shape {
+                appearance USE PLASTIC_APPEARANCE
+                geometry Box {
+                  size 0.01 0.48 0.28
+                }
+              }
+            ]
+          }
+          DEF LEFT Transform {
+            translation -0.16 0 0
+            children [
+              Shape {
+                appearance USE PLASTIC_APPEARANCE
+                geometry Box {
+                  size 0.01 0.48 0.28
+                }
+              }
+            ]
+          }
+          DEF FRONT_BOTTOM Transform {
+            translation 0 -0.1 -0.145
+            children [
+              Shape {
+                appearance USE PLASTIC_APPEARANCE
+                geometry Box {
+                  size 0.29 0.28 0.01
+                }
+              }
+            ]
+          }
+          DEF FRONT_TOP Transform {
+            translation 0 0.2075 -0.145
+            children [
+              Shape {
+                appearance USE PLASTIC_APPEARANCE
+                geometry Box {
+                  size 0.29 0.065 0.01
+                }
+              }
+            ]
+          }
+          DEF FRONT_RIGHT_EDGE Transform {
+            translation 0.155 0 -0.145
+            children [
+              Shape {
+                appearance USE PLASTIC_APPEARANCE
+                geometry Box {
+                  size 0.02 0.48 0.01
+                }
+              }
+            ]
+          }
+          DEF FRONT_LEFT_EDGE Transform {
+            translation -0.155 0 -0.145
+            children [
+              Shape {
+                appearance USE PLASTIC_APPEARANCE
+                geometry Box {
+                  size 0.02 0.48 0.01
+                }
+              }
+            ]
+          }
+        ]
+      }
+      Transform {
+        translation 0 0.25 0
+        children IS headSlot
+      }
+      Transform {
+        translation 0 0.25 0
+        children IS lightSlot
+      }
+      Transform {
+        translation 0 0.3 0
+        children IS traySlot
+      }
+      Transform {
+        translation -0.16 0.15 0
+        rotation 1 0 0 1.5707
+        children IS lArmSlot
+      }
+      Transform {
+        translation 0.16 0.15 0
+        rotation 1 0 0 -1.5707
+        children IS rArmSlot
+      }
+    ]
+    boundingObject USE BODY
+    physics Physics {
+      density -1
+      mass 5.0
+      centerOfMass 0 -0.15 0
+    }
+  }
+}

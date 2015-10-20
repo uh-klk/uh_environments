@@ -1,0 +1,113 @@
+#VRML_OBJ V7.4.3 utf8
+# Sunflower head with optional camera
+
+PROTO sunflower_head [
+  field SFBool useCamera FALSE
+  field SFBool showGaze FALSE
+]
+{
+  Solid {
+    translation 0 -0.0475 0
+    children [
+      DEF MOUNT Shape {
+        appearance Appearance {
+          material Material {
+            diffuseColor 0.5 0.5 0.5
+          }
+        }
+        geometry Cylinder {
+          height 0.1
+          radius 0.11
+          bottom FALSE
+        }
+      }
+      DEF EYE_R Transform {
+        translation 0.06 0 -0.12
+        rotation 0.989439 -0.14495 0 1.5707
+        children [
+          DEF EYE Group {
+            children [
+              Shape {
+                appearance Appearance {
+                  material Material {
+                    diffuseColor 0.98 0.98 0.9
+                  }
+                }
+                geometry Cylinder {
+                  height 0.015
+                  radius 0.03
+                }
+              }
+              Transform {
+                translation 0 0.02 0
+                children [
+                  Shape {
+                    appearance Appearance {
+                      material Material {
+                        diffuseColor 0.98 0.98 0.9
+                      }
+                    }
+                    geometry Cylinder {
+                      height 0.03
+                      radius 0.005
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+      DEF EYE_L Transform {
+        translation -0.06 0 -0.12
+        rotation 0.989439 0.14495 0 1.5707
+        children [
+          USE EYE
+        ]
+      }
+      DEF CAMERA Transform {
+        %{ if fields.showGaze then }%
+        translation 0 -0.02 -2
+        %{ else }%
+        translation 0 -0.02 -0.09
+        %{ end }%
+        rotation 1 0 0 -1.5707
+        children [
+          Shape {
+            appearance Appearance {
+              material Material {
+                diffuseColor 0.07 0.07 0.07
+              }
+            }
+            geometry Cylinder {
+              %{ if fields.showGaze then }%
+              height 4.0
+              %{ else }%
+              height 0.04
+              %{ end }%
+              radius 0.015
+            }
+          }
+        ]
+      }
+      %{ if fields.useCamera then }%
+      DEF CAMERA_LENSE Transform {
+        translation 0 -0.02 -0.09
+        children [
+          Camera {
+            name "head_camera"
+            width 640
+            height 480
+            pixelSize 0.25
+          }
+        ]
+      }
+      %{ end }%
+    ]
+    boundingObject USE MOUNT
+    physics Physics {
+      density -1
+      mass 0.5
+    }
+  }
+}

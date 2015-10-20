@@ -1,0 +1,44 @@
+#VRML_OBJ V7.4.3 utf8
+# Default led panel for the Sunflower robot
+
+PROTO sunflower_lightpanel [
+]
+{
+  Solid {
+    translation 0 0.0025 0
+    children [
+      LED {
+        children [
+          DEF GEOMETRY Shape {
+            appearance Appearance {
+              material Material {
+                ambientIntensity 0
+                shininess 0.5
+                transparency 0.5
+              }
+            }
+            geometry Box {
+              size 0.325 0.005 0.295
+            }
+          }
+        ]
+        name "light"
+        color [
+          0 0 0
+          0 0 1
+          0 1 0
+          0 1 1
+          1 0 0
+          1 0 1
+          1 1 0
+          1 1 1
+        ]
+      }
+    ]
+    boundingObject USE GEOMETRY
+    physics Physics {
+      density -1
+      mass 0.150
+    }
+  }
+}

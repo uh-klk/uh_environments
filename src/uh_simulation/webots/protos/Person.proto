@@ -1,0 +1,391 @@
+#VRML_OBJ V7.4.3 utf8
+# Basic model of a person
+
+PROTO Person [  
+	field SFVec3f translation 0 0.0975 0 
+	field SFRotation rotation 0 1 0 0 
+	field SFString name "person"
+	field SFString controller "void"
+	field SFString controllerArgs ""
+]
+{
+  DEF PERSON Robot {
+    translation IS translation
+    rotation IS rotation
+    name IS name
+	  children [
+	    DEF SENSORS Group {
+          children [
+            GPS {
+              name "person_gps"
+            }
+            Compass {
+              name "person_compass"
+            }
+            Hokuyo_URG04LXUG01 {
+              translation 0 0.1 0.05
+              rotation 0 1 0 3.14159
+              name "back_laser"
+              noise 0.001
+            }
+            Hokuyo_URG04LXUG01 {
+              translation 0 0.1 -0.05
+              rotation 0 1 0 0
+              name "front_laser"
+              noise 0.001
+            }
+          ]
+        }
+	    DEF BASE Transform {
+	      translation 0 0.05 0
+	      children [
+	        DEF FR_WHEEL Transform {
+	          translation 0.18 0 -0.1
+	          rotation 0 0 1 1.5707
+	          children [
+	            HingeJoint {
+	              jointParameters HingeJointParameters {
+	                axis 0 1 0
+	              }
+	              device RotationalMotor {
+	                name "fr_wheel"
+	              }
+	              endPoint Solid {
+	                children [
+	                  DEF WHEEL_SHAPE Shape {
+	                    appearance Appearance {
+	                      material Material {
+	                        transparency 1
+	                      }
+	                    }
+	                    geometry Cylinder {
+	                      height 0.02
+	                      radius 0.10
+	                    }
+	                  }
+	                ]
+	                name "fr_wheel"
+	                boundingObject USE WHEEL_SHAPE
+	                physics DEF WHEEL_PHYSICS Physics {
+	                  density -1
+	                  mass 1
+	                  centerOfMass [
+	                    0 0 0
+	                  ]
+	                }
+	              }
+	            }
+	          ]
+	        }
+	        DEF RR_WHEEL Transform {
+	          translation 0.18 0 0.1
+	          rotation 0 0 1 -1.5707
+	          children [
+	            HingeJoint {
+	              jointParameters HingeJointParameters {
+	                axis 0 -1 0
+	              }
+	              device RotationalMotor {
+	                name "rr_wheel"
+	              }
+	              endPoint Solid {
+	                children [
+	                  DEF WHEEL_SHAPE Shape {
+	                    appearance Appearance {
+	                      material Material {
+	                        transparency 1
+	                      }
+	                    }
+	                    geometry Cylinder {
+	                      height 0.02
+	                      radius 0.10
+	                    }
+	                  }
+	                ]
+	                name "rr_wheel"
+	                boundingObject USE WHEEL_SHAPE
+	                physics DEF WHEEL_PHYSICS Physics {
+	                  density -1
+	                  mass 1
+	                  centerOfMass [
+	                    0 0 0
+	                  ]
+	                }
+	              }
+	            }
+	          ]
+	        }
+	        DEF RL_WHEEL Transform {
+	          translation -0.18 0 0.1
+	          rotation 0 0 1 -1.5707
+	          children [
+	            HingeJoint {
+	              jointParameters HingeJointParameters {
+	                axis 0 -1 0
+	              }
+	              device RotationalMotor {
+	                name "rl_wheel"
+	              }
+	              endPoint Solid {
+	                children [
+	                  DEF WHEEL_SHAPE Shape {
+	                    appearance Appearance {
+	                      material Material {
+	                        transparency 1
+	                      }
+	                    }
+	                    geometry Cylinder {
+	                      height 0.02
+	                      radius 0.10
+	                    }
+	                  }
+	                ]
+	                name "rl_wheel"
+	                boundingObject USE WHEEL_SHAPE
+	                physics DEF WHEEL_PHYSICS Physics {
+	                  density -1
+	                  mass 1
+	                  centerOfMass [
+	                    0 0 0
+	                  ]
+	                }
+	              }
+	            }
+	          ]
+	        }
+	        DEF FL_WHEEL Transform {
+	          translation -0.18 0 -0.1
+	          rotation 0 0 1 1.5707
+	          children [
+	            HingeJoint {
+	              jointParameters HingeJointParameters {
+	                axis 0 1 0
+	              }
+	              device RotationalMotor {
+	                name "fl_wheel"
+	              }
+	              endPoint Solid {
+	                children [
+	                  DEF WHEEL_SHAPE Shape {
+	                    appearance Appearance {
+	                      material Material {
+	                        transparency 1
+	                      }
+	                    }
+	                    geometry Cylinder {
+	                      height 0.02
+	                      radius 0.10
+	                    }
+	                  }
+	                ]
+	                name "fl_wheel"
+	                boundingObject USE WHEEL_SHAPE
+	                physics DEF WHEEL_PHYSICS Physics {
+	                  density -1
+	                  mass 1
+	                  centerOfMass [
+	                    0 0 0
+	                  ]
+	                }
+	              }
+	            }
+	          ]
+	        }
+	      ]
+	    }
+	    LED {
+	      translation 0 1.65 0
+	      children [
+	        Group {
+	          children [
+	            Transform {
+	              translation 0 0.12 0
+	              children [
+	                Shape {
+	                  appearance Appearance {
+	                    material Material {
+	                      ambientIntensity 0
+	                      shininess 0.5
+	                      transparency 0.4
+	                    }
+	                  }
+	                  geometry Capsule {
+	                    height 0.1
+	                    radius 0.03
+	                  }
+	                }
+	              ]
+	            }
+	            Shape {
+	              appearance Appearance {
+	                material Material {
+	                  ambientIntensity 0
+	                  shininess 0.5
+	                  transparency 0.4
+	                }
+	              }
+	              geometry Sphere {
+	                radius 0.03
+	              }
+	            }
+	          ]
+	        }
+	      ]
+	      name "light"
+	      color [
+	        0 0 0
+	        0 0 1
+	        0 1 0
+	        0 1 1
+	        1 0 0
+	        1 0 1
+	        1 1 0
+	        1 1 1
+	      ]
+	    }
+	    Compass {
+	    }
+	    GPS {
+	    }
+	    DEF BODY Transform {
+	      translation 0 1.05 0
+	      children [
+	        DEF TORSO Transform {
+	          translation 0 -0.05 0
+	          children [
+	            Transform {
+	              translation 0 0.3 0
+	              rotation 0 0 1 1.57079
+	              children [
+	                Shape {
+	                  appearance Appearance {
+	                    material DEF SHIRT Material {
+	                      diffuseColor 0.611765 0.0156863 0.0156863
+	                    }
+	                  }
+	                  geometry Capsule {
+	                    height 0.4
+	                    radius 0.1
+	                  }
+	                }
+	              ]
+	            }
+	            Shape {
+	              appearance Appearance {
+	                material USE SHIRT
+	              }
+	              geometry Box {
+	                size 0.3 0.6 0.2
+	              }
+	            }
+	          ]
+	        }
+	        DEF LEGS Transform {
+	          translation 0 -0.25 0
+	          children [
+	            DEF R_LEG Transform {
+	              translation -0.1 -0.35 0
+	              children [
+	                DEF LEG Shape {
+	                  appearance Appearance {
+	                    material Material {
+	                      diffuseColor 0.14902 0.294118 0.560784
+	                    }
+	                  }
+	                  geometry Capsule {
+	                    height 0.65
+	                    radius 0.07
+	                  }
+	                }
+	              ]
+	            }
+	            DEF L_LEG Transform {
+	              translation 0.1 -0.35 0
+	              children [
+	                USE LEG
+	              ]
+	            }
+	          ]
+	        }
+	        DEF ARMS Transform {
+	          translation 0 0.35 0
+	          children [
+	            DEF R_ARM Transform {
+	              translation -0.23 -0.35 0
+	              children [
+	                DEF ARM Shape {
+	                  appearance Appearance {
+	                    material DEF SKIN Material {
+	                      diffuseColor 1 0.803922 0.552941
+	                    }
+	                  }
+	                  geometry Capsule {
+	                    height 0.45
+	                    radius 0.07
+	                  }
+	                }
+	              ]
+	            }
+	            DEF L_ARM Transform {
+	              translation 0.23 -0.35 0
+	              children [
+	                USE ARM
+	              ]
+	            }
+	          ]
+	        }
+	        DEF HEAD Transform {
+	          translation 0 0.45 0
+	          rotation 0 1 0 -1.57079
+	          children [
+	            Shape {
+	              appearance Appearance {
+	                texture ImageTexture {
+	                  url [
+	                    "textures/smiley.png"
+	                  ]
+	                  repeatS FALSE
+	                  repeatT FALSE
+	                }
+	                textureTransform TextureTransform {
+	                  scale 1.5 1
+	                  translation 0.10 0
+	                }
+	              }
+	              geometry DEF HEAD_SHAPE Capsule {
+	                height 0.07
+	                radius 0.08
+	              }
+	            }
+	            Shape {
+	              appearance Appearance {
+	                material USE SKIN
+	              }
+	              geometry USE HEAD_SHAPE
+	            }
+	          ]
+	        }
+	      ]
+	    }
+	  ]
+	  name "person"
+	  description "Simulation standin for a person"
+	  boundingObject Transform {
+	    translation 0 0.95 0
+	    children [
+	      Box {
+	        size 0.6 1.8 0.2
+	      }
+	    ]
+	  }
+	  physics Physics {
+	    density -1
+	    mass 60
+	    centerOfMass [
+	      0 -0.9 0
+	    ]
+	  }
+	  controller IS controller
+	  controllerArgs IS controllerArgs
+  }
+}

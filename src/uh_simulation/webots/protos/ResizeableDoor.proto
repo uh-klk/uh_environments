@@ -1,0 +1,234 @@
+#VRML_SIM V7.4.3 utf8
+# A cutomizable openable door
+# Author: fabien.rohrer@cyberbotics.com
+
+PROTO ResizeableDoor [
+  field SFVec3f    translation         0 0 0
+  field SFRotation rotation            0 1 0 0
+  field SFVec3f    size                1 2.4 0.2
+  field SFBool     canBeOpen           TRUE
+  field SFBool     jointAtLeft         TRUE
+  field SFFloat    doorThickness       0.05
+  field SFFloat    frameHeight         2.0
+  field SFFloat    frameThickness      0.05
+  field MFString   doorTextureUrl      "textures/door.png"
+  field MFString   wallTextureUrl      "textures/roughcast.png"
+  field SFVec2f    wallTileSize        0.5 0.5
+  field MFString   frameTextureUrl     "textures/metal.png"
+]
+{
+  %{
+    local wallTileSize = fields.wallTileSize
+      if wallTileSize.x <= 0.0 or wallTileSize.y <= 0.0 then -- avoid a zero division and negative values
+        wallTileSize = { x = 1.0; y = 1.0 }
+      io.stderr:write("'wallTileSize' must contain positive values")
+    end
+    
+    local size = fields.size
+      if size.x <= 0.0 or size.y <= 0.0 or size.z <= 0.0 then -- avoid a negative values
+        size = { x = 1.0; y = 1.0 } 
+      io.stderr:write("'size' must contain positive values")
+    end
+
+    local doorThickness = fields.doorThickness
+    if doorThickness <= 0.0 then
+      io.stderr:write("'doorThickness' must be positive")
+      doorThickness = 0.05
+    end
+
+    local frameHeight = fields.frameHeight
+    if frameHeight <= 0.0 then
+      io.stderr:write("'frameHeight' must be positive")
+      frameHeight = 0.05
+    end
+
+    local frameThickness = fields.frameThickness
+    if frameThickness <= 0.0 then
+      io.stderr:write("'frameThickness' must be positive")
+      frameThickness = 0.05
+    end
+
+   local mirrorFactor = fields.jointAtLeft and -1 or 1
+  }%
+  Solid {
+    translation IS translation
+    rotation IS rotation
+    children [ 
+      SolidBox { 
+        %{ local topWallHeight = size.y - frameHeight }%
+        translation 0 %{= size.y - 0.5 * topWallHeight }% 0
+        size %{= size.x }% %{= topWallHeight }% %{= size.z }%
+        appearance Appearance {
+            material Material {
+            }
+          texture ImageTexture {
+            url IS wallTextureUrl
+          }
+          textureTransform TextureTransform {
+             %{ local wallTextureFactor = math.max(size.x, topWallHeight) }%
+             scale %{= wallTextureFactor / wallTileSize.x }% %{= wallTextureFactor / wallTileSize.y }%
+           }
+        }
+      }
+      SolidBox { # top frame
+        translation 0 %{= frameHeight - 0.5 * frameThickness }% 0
+        size %{= size.x - 2 * frameThickness }% %{= frameThickness }% %{= 2 * frameThickness + size.z }%
+        appearance Appearance {
+            material Material {
+            }
+          texture ImageTexture {
+            url IS frameTextureUrl
+          }
+        }
+      }
+      SolidBox { # left frame
+        translation %{= -0.5 * size.x + 0.5 * frameThickness }% %{= 0.5 * frameHeight }% 0
+        size %{= frameThickness }% %{= frameHeight }% %{= 2 * frameThickness + size.z }%
+        appearance Appearance {
+            material Material {
+            }
+          texture ImageTexture {
+            url IS frameTextureUrl
+          }
+        }
+      }
+      SolidBox { # right frame
+        translation %{= 0.5 * size.x - 0.5 * frameThickness }% %{= 0.5 * frameHeight }% 0
+        size %{= frameThickness }% %{= frameHeight }% %{= 2 * frameThickness + size.z }%
+        appearance Appearance {
+            material Material {
+            }
+          texture ImageTexture {
+            url IS frameTextureUrl
+          }
+        }
+      }
+      %{ if fields.canBeOpen then }%
+        HingeJoint {
+          jointParameters HingeJointParameters {
+            anchor %{= mirrorFactor * (0.5 * size.x - 0.5 * frameThickness) }% 0 %{= 0.5 * size.z + frameThickness }%
+            axis 0 1 0
+            %{ if mirrorFactor > 0 then }%
+              minStop -0.01
+              maxStop 1.57
+            %{ else }%
+              minStop -1.57
+              maxStop 0.01
+            %{ end }%
+            dampingConstant 10
+          }
+          endPoint
+      %{ end }%
+          Solid {
+            translation 0 0 0.001 # small offset to not generates collisions
+            children [
+              DEF DOOR_GROUP Group {
+                children [
+                  Transform { # door
+                    translation 0 %{= 0.5 * frameHeight }% %{= 0.5 * size.z + frameThickness + 0.5 * doorThickness }%
+                    children [
+                      Shape {
+                        appearance Appearance {
+                          material Material {
+                          }
+                          texture ImageTexture {
+                            url IS doorTextureUrl
+                          }
+                        }
+                        geometry Box {
+                          size %{= size.x - frameThickness }% %{= frameHeight - 0.5 * frameThickness }% %{= doorThickness }%
+                        }
+                      }
+                    ]
+                  }
+                  Transform { # handle support
+                    translation %{= - mirrorFactor * 0.4 * size.x }% %{= 0.5 * frameHeight }% %{= 0.5 * size.z + frameThickness + 0.5 * doorThickness }%
+                    rotation 1 0 0 1.57
+                    children [
+                      Shape {
+                        appearance Appearance {
+                          material Material {
+                          }
+                          texture ImageTexture {
+                            url IS frameTextureUrl
+                          }
+                        }
+                        geometry Cylinder {
+                          radius %{= frameThickness }%
+                          height %{= frameThickness + doorThickness }%
+                        }
+                      }
+                    ]
+                  }
+                  Transform { # handle axis
+                    translation %{= - mirrorFactor * 0.4 * size.x }% %{= 0.5 * frameHeight }% %{= 0.5 * size.z + frameThickness + 0.5 * doorThickness }%
+                    rotation 1 0 0 1.57
+                    children [
+                      Shape {
+                        appearance Appearance {
+                          material Material {
+                          }
+                          texture ImageTexture {
+                            url IS frameTextureUrl
+                          }
+                        }
+                        geometry Capsule {
+                          radius %{= 0.25 * frameThickness }%
+                          height %{= 2.5 * frameThickness + doorThickness }%
+                        }
+                      }
+                    ]
+                  }
+                  Transform { # back handle
+                    translation %{= mirrorFactor * (- 0.4 * size.x + 0.075 ) }% %{= 0.5 * frameHeight }% %{= 0.5 * size.z - 0.25 * frameThickness }%
+                    rotation 0 0 1 1.57
+                    children [
+                      Shape {
+                        appearance Appearance {
+                          material Material {
+                          }
+                          texture ImageTexture {
+                            url IS frameTextureUrl
+                          }
+                        }
+                        geometry Capsule {
+                          radius %{= 0.25 * frameThickness }%
+                          height 0.15
+                        }
+                      }
+                    ]
+                  }
+                  Transform { # front handle
+                    translation %{= mirrorFactor * (- 0.4 * size.x + 0.075 ) }% %{= 0.5 * frameHeight }% %{= 0.5 * size.z + 2.25 * frameThickness + doorThickness }%
+                    rotation 0 0 1 1.57
+                    children [
+                      Shape {
+                        appearance Appearance {
+                          material Material {
+                          }
+                          texture ImageTexture {
+                            url IS frameTextureUrl
+                          }
+                        }
+                        geometry Capsule {
+                          radius %{= 0.25 * frameThickness }%
+                          height 0.15
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+            boundingObject USE DOOR_GROUP
+            %{ if fields.canBeOpen then }%
+              physics Physics {
+              }
+            %{ end }%
+          }
+      %{ if fields.canBeOpen then }%
+        }
+      %{ end }%
+    ]
+  }
+}

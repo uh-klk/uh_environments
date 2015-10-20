@@ -1,0 +1,47 @@
+#VRML_SIM V7.4.3 utf8
+# A customizable wall
+# Author: fabien.rohrer@cyberbotics.com
+
+PROTO ResizeableWall [
+  field SFVec3f    translation         0 0 0
+  field SFRotation rotation            0 1 0 0
+  field SFVec3f    size                1 2.4 0.2
+  field MFString   wallTextureUrl      "textures/roughcast.png"
+  field SFVec2f    wallTileSize        0.5 0.5
+]
+{
+  %{
+    local wallTileSize = fields.wallTileSize
+      if wallTileSize.x <= 0.0 or wallTileSize.y <= 0.0 then -- avoid a zero division and negative values
+        wallTileSize = { x = 1.0; y = 1.0 }
+      io.stderr:write("'wallTileSize' must contain positive values")
+    end
+    
+    local size = fields.size
+      if size.x <= 0.0 or size.y <= 0.0 or size.z <= 0.0 then -- avoid a negative values
+        size = { x = 1.0; y = 1.0 } 
+      io.stderr:write("'size' must contain positive values")
+    end
+  }%
+  Solid {
+    translation IS translation
+    rotation IS rotation
+    children [ 
+      SolidBox { 
+        translation 0 %{= 0.5 * size.y }% 0
+        size IS size
+        appearance Appearance {
+          material Material {
+          }
+          texture ImageTexture {
+            url IS wallTextureUrl
+          }
+          textureTransform TextureTransform {
+             %{ local wallTextureFactor = math.max(size.x, size.y, size.z) }%
+             scale %{= wallTextureFactor / wallTileSize.x }% %{= wallTextureFactor / wallTileSize.y }%
+           }
+        }
+      }
+    ]
+  }
+}

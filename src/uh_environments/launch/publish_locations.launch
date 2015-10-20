@@ -1,0 +1,7 @@
+<launch>
+	<arg name="sources" default="$(find uh_environments)/config/sources.yaml" />
+
+	<node name="location_publisher" pkg="uh_environments" type="location_publisher.py">
+		<rosparam param="sources" command="load" file="$(arg sources)" />
+	</node>
+</launch>

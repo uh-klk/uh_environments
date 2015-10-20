@@ -1,0 +1,12 @@
+<!-- -*- mode: XML -*- -->
+<launch>
+	<arg name="world" default="$(find uh_simulation)/webots/worlds/robotHouse.wbt" />
+	<arg name="partials" default="[]" />
+	<arg name="mode" default="realtime" />
+
+	<node pkg="uh_simulation" type="start_webots" name="webots" output="screen" required="true">
+		<param name="mode" value="$(arg mode)" />
+		<param name="world" value="$(arg world)" />
+		<rosparam param="partials" subst_value="True">$(arg partials)</rosparam>
+	</node>
+</launch>

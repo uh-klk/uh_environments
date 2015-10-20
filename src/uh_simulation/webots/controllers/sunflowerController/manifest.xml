@@ -1,0 +1,21 @@
+<package>
+  <description brief="sunflowerController">
+
+     Webots implementation of a Sunflower controller
+
+  </description>
+  <author>Nathan Burke</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/sf_controller</url>
+  <depend package="rospy"/>
+  <depend package="actionlib"/>
+  <depend package="tf"/>
+  <depend package="sf_controller_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="dynamixel_msgs"/>
+  <depend package="std_msgs"/>
+  <depend package="move_base_msgs"/>
+  <depend package="nav_msgs"/>
+  <depend package="sensor_msgs"/>
+</package>

@@ -1,0 +1,100 @@
+#VRML_OBJ V7.4.3 utf8
+# Default tray module for the Sunflower robot
+
+PROTO sunflower_tray [
+  #SFFloat servoPosition 0
+]
+{
+  Solid {
+    translation 0 -0.18 -0.045
+    boundingObject Shape {
+      geometry Box {
+        size 0.05 0.0025 0.05
+      }
+    }
+    physics Physics {
+    }
+    children [
+      SliderJoint {
+        jointParameters JointParameters {
+          axis 0 0 -1
+          #position IS servoPosition
+          minStop -0.001
+          maxStop 0.15
+        }
+        device LinearMotor {
+          name "tray"
+          acceleration -1
+          maxVelocity 0.5
+          maxForce 2
+          minPosition -0.001
+          maxPosition 0.15
+        }
+        endPoint Solid {
+          children [
+            DEF FRONT Transform {
+              translation 0 0 -0.11
+              children [
+                Shape {
+                  appearance DEF WOOD_APPEARANCE Appearance {
+                    material Material {
+                      diffuseColor 0.96 0.86 0.57
+                    }
+                  }
+                  geometry Box {
+                    size 0.325 0.18 0.01
+                  }
+                }
+              ]
+            }
+            DEF BOTTOM Transform {
+              translation 0 -0.065 0.005
+              children [
+                Shape {
+                  appearance USE WOOD_APPEARANCE
+                  geometry Box {
+                    size 0.265 0.01 0.22
+                  }
+                }
+              ]
+            }
+            DEF LEFT Transform {
+              translation 0.1375 -0.025 0.005
+              children [
+                Shape {
+                  appearance USE WOOD_APPEARANCE
+                  geometry Box {
+                    size 0.01 0.09 0.22
+                  }
+                }
+              ]
+            }
+            DEF RIGHT Transform {
+              translation -0.1375 -0.025 0.005
+              children [
+                Shape {
+                  appearance USE WOOD_APPEARANCE
+                  geometry Box {
+                    size 0.01 0.09 0.22
+                  }
+                }
+              ]
+            }
+          ]
+          boundingObject Group {
+            children [
+              USE FRONT
+              USE BOTTOM
+              USE RIGHT
+              USE LEFT
+            ]
+          }
+          physics Physics {
+            density -1
+            mass 0.150
+          }
+        }
+      }
+    ]
+  }
+}

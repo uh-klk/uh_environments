@@ -1,0 +1,5 @@
+DEF PERSON Person {
+  translation 3 0.0975 -0.5
+  rotation 0 1 0 1.57079
+  controller "personController"
+}
