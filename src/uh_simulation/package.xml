@@ -9,8 +9,8 @@
 	<buildtool_depend>catkin</buildtool_depend>
 
 	<build_depend>roscpp</build_depend>
-	
-	<!-- PersonSim Deps -->	
+
+	<!-- PersonSim Deps -->
 	<run_depend>amcl</run_depend>
 	<run_depend>dynamixel_msgs</run_depend>
 	<run_depend>hokuyo_node</run_depend>
@@ -42,4 +42,10 @@
 	<run_depend>std_msgs</run_depend>
 	<run_depend>tf</run_depend>
 
+	<export>
+		<gazebo_ros 
+			gazebo_media_path="${prefix}/.."
+			gazebo_model_path="${prefix}/.."
+			plugin_path="${prefix}/.." />
+	</export>
 </package>

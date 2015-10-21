@@ -31,8 +31,9 @@
 			<inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
 		</inertial>
 		<collision name="floor_collision">
+			<origin xyz="-1.8 2.15 0" />
 			<geometry>
-				<mesh filename="package://uh_environments/uh-robot-house/models/robot_house_ground.dae" />
+				<box size="10.5 10.5 0" />
 			</geometry>
 		</collision>
 	</link>

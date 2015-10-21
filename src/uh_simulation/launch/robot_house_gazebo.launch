@@ -2,17 +2,23 @@
 
 	<arg name="use_sim_time" default="true" />
 	<arg name="robot" default="robot" />
+	<arg name="robot_description" default="robot_description" />
+	<arg name="world" default="uh-robot-house" />
 
 	<!-- set use_sim_time flag -->
-	<param name="/use_sim_time" value="true" />
+	<param name="/use_sim_time" value="$(arg use_sim_time)" />
 
 	<!-- start world -->
-	<node name="gazebo" pkg="gazebo" type="gazebo" args="$(find uh_environments)/gazebo/worlds/robot_house.world" respawn="false" output="screen" />
-	<node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model $(arg robot) -z 0.1"
-		respawn="false" output="screen" />
-	<include file="$(find uh_environments)/launch/robot_house_map.launch" />
+	<include file="$(find gazebo_ros)/launch/empty_world.launch">
+		<arg name="world_name" value="$(find uh_simulation)/gazebo/worlds/empty.world" />
+	</include>
+	<include file="$(find uh_environments)/launch/publish_world.launch">
+		<arg name="world" value="$(arg world)" />
+	</include>
 
-	<!-- start gui -->
-	<node name="gazebo_gui" pkg="gazebo" type="gui" respawn="false" output="screen" />
+	<node name="spawn_world_model" pkg="gazebo_ros" type="spawn_model"
+		args="-urdf -param world_description -x 0 -y 0 -z 0.01 -R 0.0 -P 0.0 -Y 0 -model $(arg world)" respawn="false" output="screen" />
 
+<!-- 	<node name="spawn_robot_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param $(arg robot_description) -model $(arg robot) -z 0.1" -->
+<!-- 	respawn="false" output="screen" /> -->
 </launch>
