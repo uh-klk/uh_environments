@@ -11,5 +11,6 @@
 	<run_depend>map_server</run_depend>
 	<run_depend>robot_state_publisher</run_depend>
 	<run_depend>tf</run_depend>
+	<run_depend>tf2</run_depend>
 	<run_depend>xacro</run_depend>
 </package>

@@ -8,7 +8,12 @@ from collections import namedtuple
 
 import rospy
 
-from PyKDL import Rotation
+hydro = False
+try:
+    from PyKDL import Rotation
+    hydro = True
+except:
+    from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import Pose, PoseStamped, Quaternion
 from visualization_msgs.msg import MarkerArray, Marker
 import visualization_msgs
@@ -18,8 +23,12 @@ from copy import deepcopy
 class LocationPublisher(object):
 
     def __init__(self, rate, topic, sources):
+	global hydro
         self._rate = rate
-        self._publisher = rospy.Publisher(topic, MarkerArray, queue_size=2)
+	if hydro:
+	        self._publisher = rospy.Publisher(topic, MarkerArray, queue_size=2)
+	else:
+	        self._publisher = rospy.Publisher(topic, MarkerArray)
         self._sourceTopics = {}
         self._sourceParams = {}
         self._sourceFixed = {}
@@ -121,24 +130,41 @@ class LocationPublisher(object):
     def _getOrientation(self, data):
         q = Quaternion()
         if data:
-            if 'theta' in data:
-                # Assume Yaw Orientation
-                orientation = Rotation.RotZ(data.get('theta'))
-            elif any(k in ['roll', 'pitch', 'yaw'] for k in data.iterkeys()):
-                # Assume RPY Orientation
-                orientation = Rotation.RPY(data.get('roll', 0),
-                                           data.get('pitch', 0),
-                                           data.get('yaw', 0))
-            elif any(k in ['w', 'x', 'y', 'z'] for k in data.iterkeys()):
-                orientation = Rotation.Quaternion(data.get('x', 0),
-                                                  data.get('y', 0),
-                                                  dat.get('z', 0),
-                                                  data.get('w', 0))
-            else:
-                orientation = Rotation()
+		global hydro
+		if hydro:
+		    if 'theta' in data:
+		        # Assume Yaw Orientation
+		        orientation = Rotation.RotZ(data.get('theta'))
+		    elif any(k in ['roll', 'pitch', 'yaw'] for k in data.iterkeys()):
+		        # Assume RPY Orientation
+		        orientation = Rotation.RPY(data.get('roll', 0),
+		                                   data.get('pitch', 0),
+		                                   data.get('yaw', 0))
+		    elif any(k in ['w', 'x', 'y', 'z'] for k in data.iterkeys()):
+		        orientation = Rotation.Quaternion(data.get('x', 0),
+		                                          data.get('y', 0),
+		                                          dat.get('z', 0),
+		                                          data.get('w', 0))
+		    else:
+		        orientation = Rotation()
 
-            orientation = orientation.GetQuaternion()
-            q.x, q.y, q.z, q.w = orientation
+		    orientation = orientation.GetQuaternion()
+		else:
+		    if 'theta' in data:
+		        # Assume Yaw Orientation
+		        orientation = quaternion_from_euler(0, 0, data.get('theta'))
+		    elif any(k in ['roll', 'pitch', 'yaw'] for k in data.iterkeys()):
+		        # Assume RPY Orientation
+		        orientation = quaternion_from_euler(data.get('roll', 0), data.get('pitch', 0), data.get('yaw', 0))
+		    elif any(k in ['w', 'x', 'y', 'z'] for k in data.iterkeys()):
+		        orientation = (data.get('x', 0),
+                                          data.get('y', 0),
+                                          dat.get('z', 0),
+                                          data.get('w', 0))
+		    else:
+		        orientation = (0,0,0,0)
+
+		q.x, q.y, q.z, q.w = orientation
         return q
 
     def _updatePoseSource(self, msg, key):
