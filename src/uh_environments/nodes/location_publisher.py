@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+import os
 import sys
 import copy
 
@@ -19,16 +20,18 @@ from visualization_msgs.msg import MarkerArray, Marker
 import visualization_msgs
 from copy import deepcopy
 
+baseDir = os.path.dirname(os.path.realpath(__file__))
+
 
 class LocationPublisher(object):
 
     def __init__(self, rate, topic, sources):
-	global hydro
+        global hydro
         self._rate = rate
-	if hydro:
-	        self._publisher = rospy.Publisher(topic, MarkerArray, queue_size=2)
-	else:
-	        self._publisher = rospy.Publisher(topic, MarkerArray)
+        if hydro:
+            self._publisher = rospy.Publisher(topic, MarkerArray, queue_size=2)
+        else:
+            self._publisher = rospy.Publisher(topic, MarkerArray)
         self._sourceTopics = {}
         self._sourceParams = {}
         self._sourceFixed = {}
@@ -130,41 +133,41 @@ class LocationPublisher(object):
     def _getOrientation(self, data):
         q = Quaternion()
         if data:
-		global hydro
-		if hydro:
-		    if 'theta' in data:
-		        # Assume Yaw Orientation
-		        orientation = Rotation.RotZ(data.get('theta'))
-		    elif any(k in ['roll', 'pitch', 'yaw'] for k in data.iterkeys()):
-		        # Assume RPY Orientation
-		        orientation = Rotation.RPY(data.get('roll', 0),
-		                                   data.get('pitch', 0),
-		                                   data.get('yaw', 0))
-		    elif any(k in ['w', 'x', 'y', 'z'] for k in data.iterkeys()):
-		        orientation = Rotation.Quaternion(data.get('x', 0),
-		                                          data.get('y', 0),
-		                                          dat.get('z', 0),
-		                                          data.get('w', 0))
-		    else:
-		        orientation = Rotation()
+            global hydro
+            if hydro:
+                if 'theta' in data:
+                    # Assume Yaw Orientation
+                    orientation = Rotation.RotZ(data.get('theta'))
+                elif any(k in ['roll', 'pitch', 'yaw'] for k in data.iterkeys()):
+                    # Assume RPY Orientation
+                    orientation = Rotation.RPY(data.get('roll', 0),
+                                               data.get('pitch', 0),
+                                               data.get('yaw', 0))
+                elif any(k in ['w', 'x', 'y', 'z'] for k in data.iterkeys()):
+                    orientation = Rotation.Quaternion(data.get('x', 0),
+                                                      data.get('y', 0),
+                                                      dat.get('z', 0),
+                                                      data.get('w', 0))
+                else:
+                    orientation = Rotation()
 
-		    orientation = orientation.GetQuaternion()
-		else:
-		    if 'theta' in data:
-		        # Assume Yaw Orientation
-		        orientation = quaternion_from_euler(0, 0, data.get('theta'))
-		    elif any(k in ['roll', 'pitch', 'yaw'] for k in data.iterkeys()):
-		        # Assume RPY Orientation
-		        orientation = quaternion_from_euler(data.get('roll', 0), data.get('pitch', 0), data.get('yaw', 0))
-		    elif any(k in ['w', 'x', 'y', 'z'] for k in data.iterkeys()):
-		        orientation = (data.get('x', 0),
-                                          data.get('y', 0),
-                                          dat.get('z', 0),
-                                          data.get('w', 0))
-		    else:
-		        orientation = (0,0,0,0)
+                orientation = orientation.GetQuaternion()
+            else:
+                if 'theta' in data:
+                    # Assume Yaw Orientation
+                    orientation = quaternion_from_euler(0, 0, data.get('theta'))
+                elif any(k in ['roll', 'pitch', 'yaw'] for k in data.iterkeys()):
+                    # Assume RPY Orientation
+                    orientation = quaternion_from_euler(data.get('roll', 0), data.get('pitch', 0), data.get('yaw', 0))
+                elif any(k in ['w', 'x', 'y', 'z'] for k in data.iterkeys()):
+                    orientation = (data.get('x', 0),
+                                   data.get('y', 0),
+                                   dat.get('z', 0),
+                                   data.get('w', 0))
+                else:
+                    orientation = (0, 0, 0, 0)
 
-		q.x, q.y, q.z, q.w = orientation
+            q.x, q.y, q.z, q.w = orientation
         return q
 
     def _updatePoseSource(self, msg, key):
@@ -182,6 +185,7 @@ class LocationPublisher(object):
             self._markers[key + '_label'].action = Marker.DELETE
 
     def _updateParams(self):
+        global baseDir
         for param, (defaultMarker, defaultLabel) in self._sourceParams.iteritems():
             param_key = 'param_' + param
             data = rospy.get_param(param, [])
@@ -208,6 +212,11 @@ class LocationPublisher(object):
                 marker.color.g = markerDict.get('color', {}).get('g', marker.color.g)
                 marker.color.b = markerDict.get('color', {}).get('b', marker.color.b)
                 marker.color.a = markerDict.get('color', {}).get('a', marker.color.a)
+
+                icon = markerDict.get('model', None)
+                if icon and os.path.exists(os.path.join(os.path.join(baseDir, '../objects'), str(icon) + '.stl')):
+                    marker.type = Marker.MESH_RESOURCE
+                    marker.mesh_resource = 'package://uh_environments/objects/%s.stl' % (icon, )
 
                 marker.text = markerDict.get('text', '')
 
@@ -240,7 +249,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         # For debugging in the IDE
         import yaml
-        with open('../config/locations.yaml') as config:
+        with open(os.path.join(baseDir, '../config/sources.yaml')) as config:
             configDict = yaml.load(config)
             rospy.set_param('~sources', configDict)
 
