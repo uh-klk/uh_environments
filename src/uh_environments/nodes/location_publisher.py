@@ -198,11 +198,16 @@ class LocationPublisher(object):
                 marker.pose.position.y = markerDict.get('position', {}).get('y', marker.pose.position.y)
                 marker.pose.position.z = markerDict.get('position', {}).get('z', marker.pose.position.z)
 
-                marker.pose.orientation = self._getOrientation(markerDict.get('orientation', None))
-
                 marker.scale.x = markerDict.get('scale', {}).get('x', marker.scale.x)
                 marker.scale.y = markerDict.get('scale', {}).get('y', marker.scale.y)
                 marker.scale.z = markerDict.get('scale', {}).get('z', marker.scale.z)
+
+                orientation = markerDict.get('orientation', None)
+                if orientation is not None:
+                    marker.pose.orientation = self._getOrientation(orientation)
+                else:
+                    marker.type = Marker.SPHERE
+                    marker.scale.x = markerDict.get('scale', {}).get('y', marker.scale.y)
 
                 marker.color.r = markerDict.get('color', {}).get('r', marker.color.r)
                 marker.color.g = markerDict.get('color', {}).get('g', marker.color.g)
