@@ -4,9 +4,6 @@ import os
 import sys
 import copy
 
-from math import pi
-from collections import namedtuple
-
 import rospy
 
 hydro = False
@@ -15,9 +12,8 @@ try:
     hydro = True
 except:
     from tf.transformations import quaternion_from_euler
-from geometry_msgs.msg import Pose, PoseStamped, Quaternion
+from geometry_msgs.msg import PoseStamped, Quaternion
 from visualization_msgs.msg import MarkerArray, Marker
-import visualization_msgs
 from copy import deepcopy
 
 baseDir = os.path.dirname(os.path.realpath(__file__))
@@ -41,7 +37,7 @@ class LocationPublisher(object):
         if self._publisher:
             self._publisher.unregister()
 
-    def getMarker(self, source, id):
+    def getMarker(self, source, markerID):
         mType = source.get('marker_type', Marker.SPHERE)
         mType = mType if not isinstance(mType, str) else getattr(Marker, mType.upper())
         mAction = source.get('marker_action', Marker.ADD)
@@ -51,7 +47,7 @@ class LocationPublisher(object):
         marker.header.stamp = rospy.Time(0)
         marker.header.frame_id = source.get('marker_frame', 'map')
         marker.ns = source.get('marker_ns', '')
-        marker.id = int(source.get('marker_id', id))
+        marker.id = int(source.get('markerID', markerID))
         marker.type = mType
         marker.action = mAction
 
@@ -78,7 +74,7 @@ class LocationPublisher(object):
         marker.text = source.get('marker_text', '')
 
         marker.mesh_resource = source.get('marker_mesh', '')
-        marker.mesh_use_embedded_materials = bool(source.get('marker_mesh_resources', False))
+        marker.mesh_use_embedded_materials = bool(source.get('marker_mesh_resources', True))
 
         # Second (default hidden) marker as a label
         label = copy.deepcopy(marker)
@@ -146,7 +142,7 @@ class LocationPublisher(object):
                 elif any(k in ['w', 'x', 'y', 'z'] for k in data.iterkeys()):
                     orientation = Rotation.Quaternion(data.get('x', 0),
                                                       data.get('y', 0),
-                                                      dat.get('z', 0),
+                                                      data.get('z', 0),
                                                       data.get('w', 0))
                 else:
                     orientation = Rotation()
@@ -162,7 +158,7 @@ class LocationPublisher(object):
                 elif any(k in ['w', 'x', 'y', 'z'] for k in data.iterkeys()):
                     orientation = (data.get('x', 0),
                                    data.get('y', 0),
-                                   dat.get('z', 0),
+                                   data.get('z', 0),
                                    data.get('w', 0))
                 else:
                     orientation = (0, 0, 0, 0)
@@ -214,15 +210,22 @@ class LocationPublisher(object):
                 marker.color.a = markerDict.get('color', {}).get('a', marker.color.a)
 
                 icon = markerDict.get('model', None)
-                if icon and os.path.exists(os.path.join(os.path.join(baseDir, '../objects'), str(icon) + '.stl')):
-                    marker.type = Marker.MESH_RESOURCE
-                    marker.mesh_resource = 'package://uh_environments/objects/%s.stl' % (icon, )
+                if icon:
+                    iconFiles = [str(icon) + '.' + ext for ext in ['stl', 'dae']]
+                    for iconFile in iconFiles:
+                        fullPath = os.path.join(os.path.join(baseDir, '../objects'), iconFile) 
+                        if os.path.exists(fullPath):
+                            marker.type = Marker.MESH_RESOURCE
+                            marker.mesh_resource = 'package://uh_environments/objects/%s' % (iconFile, )
+                            marker.scale.x = 1.0
+                            marker.scale.y = 1.0
+                            marker.scale.z = 1.0
 
                 marker.text = markerDict.get('text', '')
 
                 self._markers[key] = marker
 
-                if marker.text and marker.type != Marker.TEXT_VIEW_FACING:
+                if marker.text and marker.type not in [Marker.TEXT_VIEW_FACING, Marker.MESH_RESOURCE]:
                     label = self._markers.get(key + '_label', deepcopy(defaultLabel))
                     label.id = marker.id
                     label.action = Marker.ADD
