@@ -181,7 +181,7 @@ class Person(Robot):
 
     def _publishLocationTransform(self, locationPublisher):
         if self._location:
-            print self._location
+            rospy.loginfo("Location: %s", self._location)
             locationPublisher.sendTransform(
                 (0, 0, 0),
                 quaternion_from_euler(0, 0, 1.57079),

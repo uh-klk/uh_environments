@@ -36,7 +36,7 @@ except:
     exit(1)
 else:
     import rospy
-    import sf_controller_msgs.msg
+    from sf_controller_msgs.msg import SunflowerAction, SunflowerFeedback, SunflowerResult
     import actionlib
     from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, Twist
     from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
@@ -94,10 +94,16 @@ class Sunflower(Robot):
         self._namespace = namespace.rstrip('/') + '/'
         self._timeStep = int(self.getBasicTimeStep())
         self._actionName = name
-        self._as = actionlib.SimpleActionServer(
+        self._actions = {
+            'init': self.init,
+            'move': self.move,
+            'park': self.park,
+            'stop': self.stop}
+        self._as = actionlib.ActionServer(
             self._actionName,
-            sf_controller_msgs.msg.SunflowerAction,
-            execute_cb=self.executeCB,
+            SunflowerAction,
+            goal_cb=self._goalCB,
+            cancel_cb=self._cancelCB,
             auto_start=False)
         self._as.start()
         try:
@@ -171,7 +177,7 @@ class Sunflower(Robot):
 
     def _publishLocationTransform(self, locationPublisher):
         if self._location:
-            print self._location
+            rospy.loginfo("Location: %s", self._location)
             locationPublisher.sendTransform(
                 (0, 0, 0),
                 quaternion_from_euler(0, 0, 1.57079),
@@ -455,53 +461,64 @@ class Sunflower(Robot):
     def park(self):
         pass
 
-    def executeCB(self, goal):
-        # wrap 'done' in a dict for scoping reasons
-        done = {'done': False}
+    def _cancelCB(self, goalHandle):
+        def statusCB(status, msg='', *args, **kwargs):
+            feedback = SunflowerFeedback()
+            feedback.status = status
+            feedback.msg = msg if type(msg) == str else ''
+            goalHandle.publish_feedback(feedback)
 
-        def doneCB(state=-1, result=None):
-            print "Done: state:%s, result:%s" % (state, result)
-            server_result = sf_controller_msgs.msg.SunflowerResult()
-            server_result.result = state
-            if result == 3:
-                self._as.set_succeeded(server_result)
-            elif result == 2:
-                self._as.set_preempted(server_result)
+        def doneCB(result, msg=""):
+            res = SunflowerResult(result, msg)
+            goalHandle.set_canceled(res)
+
+        self.stop(goalHandle, statusCB, doneCB)
+
+    def _goalCB(self, goalHandle):
+        goalHandle.set_accepted()
+        goal = goalHandle.get_goal()
+
+        def updateStatus(status, msg='', *args, **kwargs):
+            rospy.loginfo("Status: %s", msg)
+            feedback = SunflowerFeedback()
+            feedback.status = status
+            feedback.msg = msg if type(msg) == str else ''
+            goalHandle.publish_feedback(feedback)
+
+        def completed(result, msg=''):
+            status = goalHandle.get_goal_status().status
+            updateStatus(status, msg)
+
+            if status == actionlib.GoalStatus.ACTIVE:
+                goalHandle.set_succeeded(result)
+            elif status == actionlib.GoalStatus.PREEMPTED:
+                goalHandle.set_preempted(result)
             else:
-                self._as.set_aborted(server_result)
+                goalHandle.set_canceled(result)
 
-            done['done'] = True
-
-        if goal.component == 'light':
-            self.setlight(goal.jointPositions, doneCB)
-        elif goal.action == 'move':
-            self.move(goal, doneCB)
-        elif goal.action == 'init':
-            self.init(goal.component, doneCB)
-        elif goal.action == 'stop':
-            self.stop(goal.component, doneCB)
-        elif goal.action == 'park':
-            self.park(doneCB)
+        if goal.action in self._actions:
+            updateStatus(goalHandle.get_goal_status().status, "Starting action %s" % (goal.action, ))
+            self._actions[goal.action](goalHandle, updateStatus, completed)
         else:
-            rospy.logwarn('Unknown action %s', goal.action)
-            doneCB(4, None)
+            rospy.logwarn("Unknown action %s", goal.action)
+            goalHandle.set_rejected()
 
-        while not done['done']:
-            rospy.sleep(0.1)
+    def init(self, goalHandle, statusCB, doneCB):
+        doneCB(actionlib.GoalStatus.SUCCEEDED)
 
-    def init(self, name, doneCB):
-        doneCB(3)
-
-    def stop(self, name, doneCB):
+    def stop(self, goalHandle, statusCB, doneCB):
+        name = goalHandle.get_goal().component
         rospy.loginfo('%s: Stopping %s', self._actionName, name)
         if name == 'base':
             client = actionlib.SimpleActionClient(self._namespace + 'move_base', MoveBaseAction)
             client.wait_for_server()
             client.cancel_all_goals()
 
-        doneCB(3)
+        doneCB(actionlib.GoalStatus.SUCCEEDED)
 
-    def setlight(self, color, doneCB):
+    def setlight(self, goalHandle, statusCB, doneCB):
+        goal = goalHandle.get_goal()
+        color = goal.jointPositions
         # Sunflower hardware only supports on/off states for RGB array
         # Webots selects the color as an array index of available colors
         # 3-bit color array is arranged in ascending binary order
@@ -513,15 +530,16 @@ class Sunflower(Robot):
             colorIndex = r + g + b + 1
             if self._leds['body']:
                 self._leds['body'].set(colorIndex)
-                doneCB(3)
+                doneCB(actionlib.GoalStatus.SUCCEEDED)
             else:
                 rospy.logerr('Unable to set color.  Body LED not found.')
-                doneCB(-1)
+                doneCB(actionlib.GoalStatus.REJECTED)
         except Exception:
             rospy.logerr('Error setting color to: %s' % (color), exc_info=True)
-            doneCB(-1)
+            doneCB(actionlib.GoalStatus.ABORTED)
 
-    def move(self, goal, doneCB):
+    def move(self, goalHandle, statusCB, doneCB):
+        goal = goalHandle.get_goal()
         joints = goal.jointPositions
 
         if(goal.namedPosition != '' and goal.namedPosition is not None):
@@ -535,13 +553,13 @@ class Sunflower(Robot):
                       goal.component,
                       goal.namedPosition or joints)
 
-        def onDone(state=-1, result=None):
+        def onDone(state=actionlib.GoalStatus.ABORTED, result=None):
             rospy.logdebug('%s: "%s to %s" Result:%s',
                            self._actionName,
                            goal.component,
                            goal.namedPosition or joints,
                            result)
-            doneCB(state, result)
+            doneCB(result)
 
         try:
             if goal.component == 'base':
@@ -552,9 +570,12 @@ class Sunflower(Robot):
                 self.moveJoints(goal, joints, onDone)
         except Exception as e:
             rospy.logerr('Error occurred: %s' % e)
-            onDone(-1)
+            onDone(actionlib.GoalStatus.ABORTED, 'Error occurred: %s' % e)
 
-    def moveBase(self, goal, positions, doneCB):
+    def moveBase(self, goalHandle, statusCB, doneCB):
+        goal = goalHandle.get_goal()
+        positions = goal.jointPositions
+
         LINEAR_RATE = math.pi / 2  # [rad/s]
         # WHEEL_DIAMETER = 0.195  # [m] From the manual
         WHEEL_RADIUS = 0.0975
@@ -610,7 +631,7 @@ class Sunflower(Robot):
         self._rightWheel.setVelocity(0)
         self._leftWheel.setVelocity(0)
 
-        doneCB(3)
+        doneCB(actionlib.GoalStatus.SUCCEEDED)
 
     def cmdVelCB(self, msg):
         # rospy.loginfo("cmdVelCB called on thread: %s", current_thread().ident)
@@ -634,7 +655,8 @@ class Sunflower(Robot):
         self._rightWheel.setVelocity(vR)
         self._leftWheel.setVelocity(vL)
 
-    def navigate(self, goal, positions, doneCB):
+    def navigate(self, goalHandle, statusCB, doneCB):
+        positions = goalHandle.get_goal().jointPositions
         rospy.loginfo("navigate called on thread: %s", current_thread().ident)
         pose = PoseStamped()
         pose.header.stamp = self._rosTime
@@ -661,7 +683,10 @@ class Sunflower(Robot):
 
         client.send_goal(client_goal, done_cb=doneCB)
 
-    def moveJoints(self, goal, positions, doneCB):
+    def moveJoints(self, goalHandle, statusCB, doneCB):
+        name = goalHandle.get_goal().component
+        positions = goalHandle.get_goal().jointPositions
+
         try:
             joint_names = rospy.get_param(
                 self._namespace + 'sf_controller/%s/joint_names' %
@@ -677,7 +702,7 @@ class Sunflower(Robot):
             servoName = joint_names[i]
             if servoName not in self._servos:
                 rospy.logerr('Undefined joint %s', servoName)
-                doneCB(4)
+                doneCB(actionlib.GoalStatus.ABORTED)
                 return
             self._servos[servoName].setPosition(positions[i])
 
@@ -691,10 +716,10 @@ class Sunflower(Robot):
                 target = positions[i]
                 done = done and abs(current - target) <= inpos_threshold
             if done:
-                doneCB(3)
+                doneCB(actionlib.GoalStatus.SUCCEEDED)
                 return
 
-        doneCB(4)
+        doneCB(actionlib.GoalStatus.ABORTED)
 
 if __name__ == '__main__':
     rospy.init_node('sf_controller')
