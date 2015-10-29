@@ -13,63 +13,18 @@ import time
 
 from controller import Robot
 
-try:
-    import os
-    path = os.path.dirname(os.path.realpath(__file__))
-    if 'ROS_PACKAGE_PATH' not in os.environ:
-        os.environ['ROS_PACKAGE_PATH'] = ''
-    if os.environ['ROS_PACKAGE_PATH'].find(path) == -1:
-        os.environ['ROS_PACKAGE_PATH'] = ':'.join((path, os.environ['ROS_PACKAGE_PATH']))
-    roslib = __import__('roslib', globals(), locals())
-    roslib.load_manifest('sunflowerController')
-except:
-    import logging
-    logger = logging.getLogger()
-    if logger.handlers:
-        logging.getLogger().error(
-            'Unable to load roslib, fatal error', exc_info=True)
-    else:
-        import sys
-        import traceback
-        print >> sys.stderr, 'Unable to load roslib, fatal error'
-        print >> sys.stderr, traceback.format_exc()
-    exit(1)
-else:
-    import rospy
-    from sf_controller_msgs.msg import SunflowerAction, SunflowerFeedback, SunflowerResult
-    import actionlib
-    from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, Twist
-    from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-    from nav_msgs.msg import Odometry
-    # from p2os_msgs.msg import SonarArray
-    from sensor_msgs.msg import LaserScan, JointState
-    from dynamixel_msgs.msg import JointState as DynJointState
-    from tf import TransformBroadcaster
-    from tf.transformations import quaternion_from_euler
-
-
-_states = {
-    0: 'PENDING',
-    'PENDING': 0,
-    1: 'ACTIVE',
-    'ACTIVE': 1,
-    2: 'PREEMPTED',
-    'PREEMPTED': 2,
-    3: 'SUCCEEDED',
-    'SUCCEEDED': 3,
-    4: 'ABORTED',
-    'ABORTED': 4,
-    5: 'REJECTED',
-    'REJECTED': 5,
-    6: 'PREEMPTING',
-    'PREEMPTING': 6,
-    7: 'RECALLING',
-    'RECALLING': 7,
-    8: 'RECALLED',
-    'RECALLED': 8,
-    9: 'LOST',
-    'LOST': 9,
-}
+import rospy
+from sf_controller_msgs.msg import SunflowerAction, SunflowerFeedback, SunflowerResult
+import actionlib
+from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, Twist
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from nav_msgs.msg import Odometry
+# from p2os_msgs.msg import SonarArray
+from sensor_msgs.msg import LaserScan, JointState
+from dynamixel_msgs.msg import JointState as DynJointState
+from tf import TransformBroadcaster
+from tf.transformations import quaternion_from_euler
+from sf_controller_msgs.msg._SunflowerGoal import SunflowerGoal
 
 
 class Sunflower(Robot):
@@ -444,7 +399,7 @@ class Sunflower(Robot):
         if self._sensors['camera']:
             self._sensors['camera'].enable(self._timeStep)
 
-        self._leds['body'] = self.getLED('light')
+        self._leds['light'] = self.getLED('light')
 
         self._leds['base'] = []
         for i in range(0, numLeds):
@@ -479,15 +434,24 @@ class Sunflower(Robot):
         goal = goalHandle.get_goal()
 
         def updateStatus(status, msg='', *args, **kwargs):
-            rospy.loginfo("Status: %s", msg)
+            if msg:
+                rospy.loginfo("Status: %s", msg)
             feedback = SunflowerFeedback()
             feedback.status = status
-            feedback.msg = msg if type(msg) == str else ''
+            feedback.msg = msg if type(msg) == str else str(msg)
             goalHandle.publish_feedback(feedback)
 
         def completed(result, msg=''):
             status = goalHandle.get_goal_status().status
+            msg = msg or "Completed component %s" % (goal.component, )
             updateStatus(status, msg)
+            if not isinstance(result, SunflowerResult):
+                r = SunflowerResult()
+                if type(result) == int:
+                    r.result = result
+                else:
+                    r.msg = str(result)
+                result = r
 
             if status == actionlib.GoalStatus.ACTIVE:
                 goalHandle.set_succeeded(result)
@@ -498,7 +462,7 @@ class Sunflower(Robot):
 
         if goal.action in self._actions:
             updateStatus(goalHandle.get_goal_status().status, "Starting action %s" % (goal.action, ))
-            self._actions[goal.action](goalHandle, updateStatus, completed)
+            Thread(target=self._actions[goal.action], args=(goalHandle, updateStatus, completed)).start()
         else:
             rospy.logwarn("Unknown action %s", goal.action)
             goalHandle.set_rejected()
@@ -528,8 +492,8 @@ class Sunflower(Robot):
             b = 0x1 if color[2] else 0
             # Webots color array is 1-indexed
             colorIndex = r + g + b + 1
-            if self._leds['body']:
-                self._leds['body'].set(colorIndex)
+            if self._leds['light']:
+                self._leds['light'].set(colorIndex)
                 doneCB(actionlib.GoalStatus.SUCCEEDED)
             else:
                 rospy.logerr('Unable to set color.  Body LED not found.')
@@ -562,12 +526,17 @@ class Sunflower(Robot):
             doneCB(result)
 
         try:
+            if goal.component == 'base_pan':
+                goal.component = 'base_direct'
+                goal.jointPositions = [0.0, goal.jointPositions[0]]
             if goal.component == 'base':
-                self.navigate(goal, joints, onDone)
+                self.navigate(goalHandle, statusCB, onDone)
             elif goal.component == 'base_direct':
-                self.moveBase(goal, joints, onDone)
+                self.moveBase(goalHandle, statusCB, onDone)
+            elif goal.component in self._leds:
+                self.setlight(goalHandle, statusCB, doneCB)
             else:
-                self.moveJoints(goal, joints, onDone)
+                self.moveJoints(goalHandle, joints, onDone)
         except Exception as e:
             rospy.logerr('Error occurred: %s' % e)
             onDone(actionlib.GoalStatus.ABORTED, 'Error occurred: %s' % e)
@@ -588,7 +557,8 @@ class Sunflower(Robot):
 
         if not isinstance(rotation, (int, float)):
             rospy.logerr('Non-numeric rotation in list, aborting moveBase')
-            return _states['ABORTED']
+            doneCB(actionlib.GoalStatus.REJECTED)
+            return
 
         rotRads = rotation * WHEEL_ROTATION
         linearRads = linear / WHEEL_RADIUS
@@ -615,11 +585,11 @@ class Sunflower(Robot):
         start_time = self.getTime()
         end_time = start_time + duration
         while not rospy.is_shutdown():
-            if self._as.is_preempt_requested():
-                rospy.loginfo('%s: Preempted' % self._actionName)
+            if goalHandle.get_goal_status().status != actionlib.GoalStatus.ACTIVE:
+                rospy.loginfo('%s: Preempted, status was %s' % (self._actionName, goalHandle.get_goal_status().status))
                 self._rightWheel.setVelocity(0)
                 self._leftWheel.setVelocity(0)
-                doneCB(2)
+                doneCB(actionlib.GoalStatus.PREEMPTED)
                 return
 
             self._rightWheel.setVelocity(rightRate)
@@ -661,6 +631,13 @@ class Sunflower(Robot):
         pose = PoseStamped()
         pose.header.stamp = self._rosTime
         pose.header.frame_id = 'map'
+        if len(positions) < 2:
+            try:
+                raise ValueError("Positions too short")
+            except:
+                import traceback
+                traceback.format_exc()
+
         pose.pose.position.x = positions[0]
         pose.pose.position.y = positions[1]
         pose.pose.position.z = 0.0
@@ -684,20 +661,20 @@ class Sunflower(Robot):
         client.send_goal(client_goal, done_cb=doneCB)
 
     def moveJoints(self, goalHandle, statusCB, doneCB):
-        name = goalHandle.get_goal().component
+        component = goalHandle.get_goal().component
         positions = goalHandle.get_goal().jointPositions
 
         try:
             joint_names = rospy.get_param(
                 self._namespace + 'sf_controller/%s/joint_names' %
-                goal.component)
+                component)
         except KeyError:
             # TODO: we're not publishing the dynamixel yaml configs for webots
-            if goal.component == 'head':
+            if component == 'head':
                 joint_names = ['head_pan', 'head_tilt', 'neck_upper', 'neck_lower']
             else:
                 # assume component is a named joint
-                joint_names = [goal.component, ]
+                joint_names = [component, ]
         for i in range(0, len(joint_names)):
             servoName = joint_names[i]
             if servoName not in self._servos:
