@@ -7,7 +7,7 @@ Created on 12 Mar 2013
 '''
 from collections import namedtuple
 
-from threading import Thread, current_thread
+from threading import Thread, current_thread, RLock
 import math
 import time
 
@@ -25,6 +25,8 @@ from dynamixel_msgs.msg import JointState as DynJointState
 from tf import TransformBroadcaster
 from tf.transformations import quaternion_from_euler
 from sf_controller_msgs.msg._SunflowerGoal import SunflowerGoal
+
+ros_param_lock = RLock()
 
 
 class Sunflower(Robot):
@@ -435,7 +437,7 @@ class Sunflower(Robot):
 
         def updateStatus(status, msg='', *args, **kwargs):
             if msg:
-                rospy.loginfo("Status: %s", msg)
+                rospy.logdebug("Status: %s", msg)
             feedback = SunflowerFeedback()
             feedback.status = status
             feedback.msg = msg if type(msg) == str else str(msg)
@@ -510,7 +512,9 @@ class Sunflower(Robot):
             param = self._namespace + 'sf_controller/' + \
                 goal.component + '/' + goal.namedPosition
             if(rospy.has_param(param)):
-                joints = rospy.get_param(param)[0]
+                global ros_param_lock
+                with ros_param_lock:
+                    joints = rospy.get_param(param)[0]
 
         rospy.loginfo('%s: Setting %s to %s',
                       self._actionName,
@@ -539,6 +543,8 @@ class Sunflower(Robot):
                 self.moveJoints(goalHandle, joints, onDone)
         except Exception as e:
             rospy.logerr('Error occurred: %s' % e)
+            import traceback
+            traceback.print_exc()
             onDone(actionlib.GoalStatus.ABORTED, 'Error occurred: %s' % e)
 
     def moveBase(self, goalHandle, statusCB, doneCB):
@@ -665,9 +671,10 @@ class Sunflower(Robot):
         positions = goalHandle.get_goal().jointPositions
 
         try:
-            joint_names = rospy.get_param(
-                self._namespace + 'sf_controller/%s/joint_names' %
-                component)
+            param_name = self._namespace + 'sf_controller/%s/joint_names' % component
+            global ros_param_lock
+            with ros_param_lock:
+                joint_names = rospy.get_param(param_name)
         except KeyError:
             # TODO: we're not publishing the dynamixel yaml configs for webots
             if component == 'head':
