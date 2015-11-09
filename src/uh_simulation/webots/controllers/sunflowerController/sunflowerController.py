@@ -25,8 +25,23 @@ from dynamixel_msgs.msg import JointState as DynJointState
 from tf import TransformBroadcaster
 from tf.transformations import quaternion_from_euler
 from sf_controller_msgs.msg._SunflowerGoal import SunflowerGoal
+from actionlib.server_goal_handle import ServerGoalHandle
 
 ros_param_lock = RLock()
+
+
+def setupPyDevTrace():
+    pydevdPath = "/opt/eclipse/plugins/org.python.pydev_4.4.0.201510052309/pysrc/"
+    import sys
+    if not pydevdPath in sys.path:
+        sys.path.append(pydevdPath)
+    try:
+        import pydevd
+        pydevd.settrace()
+    except ImportError as err:
+        print err
+        exit(1)
+        pass  # Most probably, pydev is not installed on the system
 
 
 class Sunflower(Robot):
@@ -134,7 +149,7 @@ class Sunflower(Robot):
 
     def _publishLocationTransform(self, locationPublisher):
         if self._location:
-            rospy.loginfo("Location: %s", self._location)
+            rospy.logdebug("Location: %s", self._location)
             locationPublisher.sendTransform(
                 (0, 0, 0),
                 quaternion_from_euler(0, 0, 1.57079),
@@ -325,8 +340,6 @@ class Sunflower(Robot):
         # Start the ros clock
         initialposepublished = False
 
-        rospy.loginfo("Main loop starting on thread: %s", current_thread().ident)
-
         while not rospy.is_shutdown() and self.step(self._timeStep) != -1:
             self._rosTime = rospy.Time.now()
 
@@ -516,10 +529,10 @@ class Sunflower(Robot):
                 with ros_param_lock:
                     joints = rospy.get_param(param)[0]
 
-        rospy.loginfo('%s: Setting %s to %s',
-                      self._actionName,
-                      goal.component,
-                      goal.namedPosition or joints)
+        rospy.logdebug('%s: Setting %s to %s',
+                       self._actionName,
+                       goal.component,
+                       goal.namedPosition or joints)
 
         def onDone(state=actionlib.GoalStatus.ABORTED, result=None):
             rospy.logdebug('%s: "%s to %s" Result:%s',
@@ -532,7 +545,7 @@ class Sunflower(Robot):
         try:
             if goal.component == 'base_pan':
                 goal.component = 'base_direct'
-                goal.jointPositions = [0.0, goal.jointPositions[0]]
+                goal.jointPositions = [goal.jointPositions[0], 0.0]
             if goal.component == 'base':
                 self.navigate(goalHandle, statusCB, onDone)
             elif goal.component == 'base_direct':
@@ -587,7 +600,7 @@ class Sunflower(Robot):
                 rightRate = rightRate * (rightDuration / leftDuration)
 
         duration = max(leftDuration, rightDuration)
-        rospy.loginfo('Setting rates: L=%s, R=%s for %ss' % (leftRate, rightRate, duration))
+        rospy.logdebug('Setting rates: L=%s, R=%s for %ss' % (leftRate, rightRate, duration))
         start_time = self.getTime()
         end_time = start_time + duration
         while not rospy.is_shutdown():
@@ -633,7 +646,7 @@ class Sunflower(Robot):
 
     def navigate(self, goalHandle, statusCB, doneCB):
         positions = goalHandle.get_goal().jointPositions
-        rospy.loginfo("navigate called on thread: %s", current_thread().ident)
+        rospy.logdebug("navigate called on thread: %s", current_thread().ident)
         pose = PoseStamped()
         pose.header.stamp = self._rosTime
         pose.header.frame_id = 'map'
@@ -658,13 +671,36 @@ class Sunflower(Robot):
         client_goal.target_pose = pose
 
         client.wait_for_server()
-        rospy.loginfo('%s: Navigating to (%s, %s, %s)',
-                      self._actionName,
-                      positions[0],
-                      positions[1],
-                      positions[2])
+        rospy.logdebug('%s: Navigating to (%s, %s, %s)',
+                       self._actionName,
+                       positions[0],
+                       positions[1],
+                       positions[2])
 
         client.send_goal(client_goal, done_cb=doneCB)
+        activeStates = [actionlib.GoalStatus.ACTIVE, actionlib.GoalStatus.PENDING]
+        while True:
+            status = client.get_state()
+            rospy.logdebug("NavClient (%s): %s", positions, status)
+            if status not in activeStates:
+                if status == actionlib.GoalStatus.ABORTED:
+                    goalHandle.set_aborted()
+                elif status == actionlib.GoalStatus.PREEMPTED:
+                    rospy.logdebug("NavClient Preempted")
+                    goalHandle.set_canceled()
+                    rospy.logdebug("NavClient Set_Canceled")
+                elif status == actionlib.GoalStatus.REJECTED:
+                    goalHandle.set_rejected()
+                rospy.logdebug("NavClient Done")
+                doneCB(status)
+                break
+            sstatus = goalHandle.get_goal_status().status
+            print "Server (%s): %s" % (positions, sstatus, )
+            if sstatus not in activeStates:
+                print "Cancelling"
+                client.cancel_goal()
+            else:
+                rospy.sleep(0.1)
 
     def moveJoints(self, goalHandle, statusCB, doneCB):
         component = goalHandle.get_goal().component
