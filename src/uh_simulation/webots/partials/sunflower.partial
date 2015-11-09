@@ -3,6 +3,28 @@ DEF Sunflower Pioneer3DX {
   name "sunflower1-1"
   controller "sunflowerController"
   extensionSlot [
+	  DEF Counterweight Solid {
+	  translation 0 -0.085 0.11
+	  children [
+	    Shape {
+	      appearance Appearance {
+	        material Material {
+	          diffuseColor 0 0 0
+	        }
+	      }
+	      geometry Sphere {
+	        radius 0.01
+	      }
+	    }
+	  ]
+	  boundingObject Sphere {
+	    radius 0.01
+	  }
+	  physics Physics {
+	    density -1
+	    mass 10
+	  }
+	}
     sunflower_shell {
       headSlot [
         sunflower_neck {
