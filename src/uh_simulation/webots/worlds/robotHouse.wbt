@@ -7,6 +7,7 @@ WorldInfo {
   ]
   title "robot house"
   basicTimeStep 64
+  northDirection 1 0 0
 }
 Viewpoint {
   orientation 0 0.91707 0.398726 3.14159

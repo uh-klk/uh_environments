@@ -21,6 +21,7 @@ PROTO Person [
             }
             Compass {
               name "person_compass"
+              rotation 0 1 0 3.14159
             }
             Hokuyo_URG04LXUG01 {
               translation 0 0.1 0.05
@@ -194,7 +195,7 @@ PROTO Person [
 	      ]
 	    }
 	    LED {
-	      translation 0 1.65 0
+	      translation 0 1.7 0
 	      children [
 	        Group {
 	          children [
@@ -360,6 +361,29 @@ PROTO Person [
 	            Shape {
 	              appearance Appearance {
 	                material USE SKIN
+	              }
+	              geometry USE HEAD_SHAPE
+	            }
+	          ]
+	        }
+	        DEF HAIR Transform {
+	          translation 0 0.47 0.02
+	          rotation 0 1 0 -1.57079
+	          children [
+	            Shape {
+                  appearance Appearance {
+                    material DEF HAIR Material {
+                      diffuseColor 0.28 0.28 0.28
+                    }
+                  }
+	              geometry DEF HEAD_SHAPE Capsule {
+	                height 0.07
+	                radius 0.08
+	              }
+	            }
+	            Shape {
+	              appearance Appearance {
+	                material USE HAIR
 	              }
 	              geometry USE HEAD_SHAPE
 	            }

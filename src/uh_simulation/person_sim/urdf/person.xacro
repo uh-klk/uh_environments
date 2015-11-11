@@ -12,7 +12,7 @@
 
 	<xacro:macro name="wheel" params="name parent reflect *origin">
 		<link name="${parent}_${name}_wheel">
-			<inertial>
+			<!-- inertial>
 				<mass value="0.5" />
 				<origin xyz="0 0 0" rpy="${-3.1415927/2} 0 0" />
 				<inertia ixx="0.012411765597" ixy="0" ixz="0" iyy="0.015218160428"
@@ -32,11 +32,11 @@
 				<geometry name="${parent}_${name}_wheel_geom">
 					<cylinder radius="0.1" length="0.02" />
 				</geometry>
-			</collision>
+			</collision-->
 		</link>
-		<gazebo reference="${parent}_${name}_wheel">
+		<!-- gazebo reference="${parent}_${name}_wheel">
 			<material value="Gazebo/Black" />
-		</gazebo>
+		</gazebo-->
 
 		<joint name="${parent}_${name}_wheel_joint" type="continuous">
 			<axis xyz="0 1 0" />
@@ -187,6 +187,9 @@
 				</geometry>
 			</collision>
 		</link>
+		<xacro:hair name="${name}_hair" parent="${name}">
+			<origin xyz="-0.02 0 0.02" rpy="0 0 0" />
+		</xacro:hair>
 		<gazebo reference="${name}_bottom_link">
 			<material>Gazebo/Grey</material>
 		</gazebo>
@@ -195,6 +198,86 @@
 		</gazebo>
 		<gazebo reference="${name}_top_link">
 			<material>Gazebo/Grey</material>
+		</gazebo>
+	</xacro:macro>
+	
+	
+	<xacro:macro name="hair" params="name parent *origin">
+		<joint name="${name}_bottom_joint" type="fixed">
+			<insert_block name="origin" />
+			<parent link="${parent}_link" />
+			<child link="${name}_link" />
+		</joint>
+		<link name="${name}_link">
+		</link>
+		<joint name="${name}_joint" type="fixed">
+			<origin xyz="0 0 0.08" rpy="0 0 0" />
+			<parent link="${name}_link" />
+			<child link="${name}_bottom_link" />
+		</joint>
+		<link name="${name}_bottom_link">
+			<visual>
+				<geometry>
+					<sphere radius="0.08" />
+				</geometry>
+				<material name="hair">
+					<color rgba="0.28 0.28 0.28 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<geometry>
+					<sphere radius="0.08" />
+				</geometry>
+			</collision>
+		</link>
+		<joint name="${name}_middle_joint" type="fixed">
+			<origin xyz="0 0 0.035" rpy="0 0 0" />
+			<parent link="${name}_bottom_link" />
+			<child link="${name}_middle_link" />
+		</joint>
+		<link name="${name}_middle_link">
+			<visual>
+				<geometry>
+					<cylinder length="0.07" radius="0.08" />
+				</geometry>
+				<material name="hair">
+					<color rgba="0.28 0.28 0.28 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<geometry>
+					<cylinder length="0.07" radius="0.08" />
+				</geometry>
+			</collision>
+		</link>
+		<joint name="${name}_top_joint" type="fixed">
+			<origin xyz="0 0 0.15" rpy="0 0 0" />
+			<parent link="${name}_link" />
+			<child link="${name}_top_link" />
+		</joint>
+		<link name="${name}_top_link">
+			<visual>
+				<geometry>
+					<sphere radius="0.08" />
+				</geometry>
+				<material name="hair">
+					<color rgba="0.28 0.28 0.28 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<geometry>
+					<sphere radius="0.08" />
+				</geometry>
+			</collision>
+		</link>
+		<gazebo reference="${name}_bottom_link">
+			<material>Gazebo/Grey</material>
+		</gazebo>
+		<gazebo reference="${name}_middle_link">
+			<material>Gazebo/Black</material>
+		</gazebo>
+		<gazebo reference="${name}_top_link">
+			<material>Gazebo/Black</material>
 		</gazebo>
 	</xacro:macro>
 

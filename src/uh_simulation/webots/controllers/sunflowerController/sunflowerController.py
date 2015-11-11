@@ -47,7 +47,7 @@ def setupPyDevTrace():
 class Sunflower(Robot):
 
     _actionHandles = {}
-    Location = namedtuple('Location', ['x', 'y', 'theta', 'timestamp'])
+    Location = namedtuple('Location', ['x', 'y', 'z', 'roll', 'pitch', 'yaw', 'timestamp'])
     DistanceScan = namedtuple('DistanceScan', [
                               'min_angle',
                               'max_angle',
@@ -107,14 +107,27 @@ class Sunflower(Robot):
     def _updateLocation(self):
         if self._sensors.get('gps', None) and self._sensors.get('compass', None):
             lX, lY, lZ = self._sensors['gps'].getValues()
-            wX, _, wZ = self._sensors['compass'].getValues()
 
-            # http://www.cyberbotics.com/reference/section3.13.php
-            bearing = math.atan2(wX, wZ) - (math.pi / 2)
-            x, y, _, rotation = self.webotsToRos(lX, lY, lZ, bearing)
+            # if 'imu' in self._sensors:
+            if False:
+                roll, pitch, yaw = self._sensors['imu'].getRollPitchYaw()
+
+                # certain 'right handed' rotations don't seem to be matching up between ros and webots
+                pitch = -pitch
+            else:
+                wX, wY, wZ = self._sensors['compass'].getValues()
+                roll = pitch = 0
+                # http://www.cyberbotics.com/reference/compass.php
+                # certain 'right handed' rotations don't seem to be matching up between ros and webots
+                yaw = -math.atan2(wX, wZ)
+
+            # Convert to ros coordinates
+            rX = lX
+            rY = -lZ
+            rZ = lY
 
             self._lastLocation = self._location
-            self._location = Sunflower.Location(x, y, rotation, self.getTime())
+            self._location = Sunflower.Location(rX, rY, rZ, roll, pitch, yaw, self.getTime())
 
     def _updateSonar(self):
         if self._sensors.get('sonar', None):
@@ -141,8 +154,8 @@ class Sunflower(Robot):
     def _publishOdomTransform(self, odomPublisher):
         if self._location:
             odomPublisher.sendTransform(
-                (self._location.x, self._location.y, 0),
-                quaternion_from_euler(0, 0, self._location.theta),
+                (self._location.x, self._location.y, self._location.z),
+                quaternion_from_euler(self._location.roll, self._location.pitch, self._location.yaw),
                 self._rosTime,
                 self._namespace + 'base_link',
                 self._namespace + 'odom')
@@ -152,7 +165,7 @@ class Sunflower(Robot):
             rospy.logdebug("Location: %s", self._location)
             locationPublisher.sendTransform(
                 (0, 0, 0),
-                quaternion_from_euler(0, 0, 1.57079),
+                quaternion_from_euler(0, 0, 0),
                 self._rosTime,
                 self._namespace + 'odom',
                 'map',)
@@ -175,10 +188,10 @@ class Sunflower(Robot):
 
             msg.pose.pose.position.x = self._location.x
             msg.pose.pose.position.y = self._location.y
-            msg.pose.pose.position.z = 0
+            msg.pose.pose.position.z = self._location.z
 
             orientation = quaternion_from_euler(
-                0, 0, self._location.theta)
+                self._location.roll, self._location.pitch, self._location.yaw)
             msg.pose.pose.orientation.x = orientation[0]
             msg.pose.pose.orientation.y = orientation[1]
             msg.pose.pose.orientation.z = orientation[2]
@@ -196,10 +209,9 @@ class Sunflower(Robot):
             msg.header.frame_id = 'map'
             msg.pose.pose.position.x = self._location.x
             msg.pose.pose.position.y = self._location.y
-            msg.pose.pose.position.z = 0
+            msg.pose.pose.position.z = self._location.z
 
-            orientation = quaternion_from_euler(
-                0, 0, self._location.theta + 1.57079)
+            orientation = quaternion_from_euler(self._location.roll, self._location.pitch, self._location.yaw)
             msg.pose.pose.orientation.x = orientation[0]
             msg.pose.pose.orientation.y = orientation[1]
             msg.pose.pose.orientation.z = orientation[2]
@@ -218,24 +230,22 @@ class Sunflower(Robot):
 
             msg.pose.pose.position.x = self._location.x
             msg.pose.pose.position.y = self._location.y
-            msg.pose.pose.position.z = 0
+            msg.pose.pose.position.z = self._location.z
 
-            orientation = quaternion_from_euler(
-                0, 0, self._location.theta)
+            orientation = quaternion_from_euler(self._location.roll, self._location.pitch, self._location.yaw)
             msg.pose.pose.orientation.x = orientation[0]
             msg.pose.pose.orientation.y = orientation[1]
             msg.pose.pose.orientation.z = orientation[2]
             msg.pose.pose.orientation.w = orientation[3]
 
             if self._lastLocation:
-                dt = (
-                    self._location.timestamp - self._lastLocation.timestamp) / 1000
-                msg.twist.twist.linear.x = (
-                    self._location.x - self._lastLocation.x) / dt
-                msg.twist.twist.linear.y = (
-                    self._location.y - self._lastLocation.y) / dt
-                msg.twist.twist.angular.x = (
-                    self._location.theta - self._lastLocation.theta) / dt
+                dt = (self._location.timestamp - self._lastLocation.timestamp) / 1000
+                msg.twist.twist.linear.x = (self._location.x - self._lastLocation.x) / dt
+                msg.twist.twist.linear.y = (self._location.y - self._lastLocation.y) / dt
+                msg.twist.twist.linear.z = (self._location.z - self._lastLocation.y) / dt
+                msg.twist.twist.angular.x = (self._location.roll - self._lastLocation.roll) / dt
+                msg.twist.twist.angular.y = (self._location.pitch - self._lastLocation.pitch) / dt
+                msg.twist.twist.angular.z = (self._location.yaw - self._lastLocation.yaw) / dt
 
             posePublisher.publish(msg)
 
@@ -364,13 +374,6 @@ class Sunflower(Robot):
             # It appears that we have to call sleep for ROS to process messages
             time.sleep(0.0001)
 
-    def webotsToRos(self, x, y, z, theta):
-        rX = -z
-        rY = -x
-        rZ = y
-        theta = -1 * theta
-        return (rX, rY, rZ, theta)
-
     def initialise(self):
         numLeds = 3
         # numSonarSensors = 16
@@ -409,6 +412,9 @@ class Sunflower(Robot):
 
         self._sensors['compass'] = self.getCompass('compass')
         self._sensors['compass'].enable(self._timeStep)
+
+        self._sensors['imu'] = self.getInertialUnit('imu')
+        self._sensors['imu'].enable(self._timeStep)
 
         self._sensors['camera'] = self.getCamera('head_camera')
         if self._sensors['camera']:

@@ -49,6 +49,11 @@ DEF Sunflower Pioneer3DX {
         GPS {
         }
         Compass {
+              rotation 0 1 0 3.14159
+        }
+        InertialUnit {
+          rotation 0 1 0 1.57079
+          name "imu"
         }
         Hokuyo_URG04LXUG01 {
           translation 0 0.2 -0.15
