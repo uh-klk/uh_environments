@@ -341,21 +341,17 @@ class Sunflower(Robot):
             initialPosePublisher = rospy.Publisher(self._namespace + 'initialpose', PoseWithCovarianceStamped)
             dynamixelPublishers = {name: rospy.Publisher(self._namespace + '%s_controller/state' % name, DynJointState) for name in self._servos.iterkeys()}
         odomTransform = TransformBroadcaster()
-#         locationTransform = TransformBroadcaster()
-#         laserTransform = TransformBroadcaster()
 
-        # Probably something wrong elsewhere, but we seem to need to publish
-        # map->odom transform once to get sf_navigation to load
-#         self._publishLocationTransform(locationTransform)
-        # Start the ros clock
-        initialposepublished = False
+        initialPosePublishCount = 5
+        initialPosePublishedAt = 0
 
         while not rospy.is_shutdown() and self.step(self._timeStep) != -1:
             self._rosTime = rospy.Time.now()
 
-            # Give time for ros to initialise
-            if not initialposepublished and self._rosTime.secs >= 5:
-                initialposepublished = self._publishInitialPose(initialPosePublisher)
+            # Give time for ROS to initialise
+            if initialPosePublishCount >= 0 and abs(initialPosePublishedAt - self._rosTime.secs) >= 5:
+                initialPosePublishCount -= int(self._publishInitialPose(initialPosePublisher))
+                initialPosePublishedAt = self._rosTime.nsecs
 
             self._updateLocation()
             self._updateSonar()
@@ -438,6 +434,8 @@ class Sunflower(Robot):
         pass
 
     def _cancelCB(self, goalHandle):
+        rospy.logwarn("Got Cancel msg")
+
         def statusCB(status, msg='', *args, **kwargs):
             feedback = SunflowerFeedback()
             feedback.status = status

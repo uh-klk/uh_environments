@@ -184,12 +184,15 @@ class Person(Robot):
 
     def _publishOdomTransform(self, odomPublisher):
         if self._location:
-            odomPublisher.sendTransform(
-                (self._location.x, self._location.y, self._location.z),
-                quaternion_from_euler(self._location.roll, self._location.pitch, self._location.yaw),
-                self._rosTime,
-                self._namespace + 'base_link',
-                self._namespace + 'odom')
+            if not any(math.isnan(float(x)) for x in [self._location.x, self._location.y, self._location.z]):
+                odomPublisher.sendTransform(
+                    (self._location.x, self._location.y, self._location.z),
+                    quaternion_from_euler(self._location.roll, self._location.pitch, self._location.yaw),
+                    self._rosTime,
+                    self._namespace + 'base_link',
+                    self._namespace + 'odom')
+            else:
+                rospy.logwarn("Nan in location: %s" % (self._location))
 
     def _publishLocationTransform(self, locationPublisher):
         if self._location:
@@ -248,12 +251,15 @@ class Person(Robot):
             msg.pose.pose.position.y = self._location.y
             msg.pose.pose.position.z = self._location.z
 
-            orientation = quaternion_from_euler(self._location.roll, self._location.pitch, self._location.yaw)
+            orientation = quaternion_from_euler(self._location.roll,
+                                                self._location.pitch,
+                                                self._location.yaw)
             msg.pose.pose.orientation.x = orientation[0]
             msg.pose.pose.orientation.y = orientation[1]
             msg.pose.pose.orientation.z = orientation[2]
             msg.pose.pose.orientation.w = orientation[3]
 
+            rospy.logerr("Person-InitialPose: %s", msg)
             posePublisher.publish(msg)
             return True
         return False
@@ -352,15 +358,17 @@ class Person(Robot):
             initialPosePublisher = rospy.Publisher(self._namespace + 'initialpose', PoseWithCovarianceStamped)
         odomTransform = TransformBroadcaster()
         # laserTransform = TransformBroadcaster()
-        initialposepublished = False
+
+        initialPosePublishCount = 5
+        initialPosePublishedAt = 0
 
         while not rospy.is_shutdown() and self.step(self._timeStep) != -1:
-            # self._rosTime = rospy.Time(self.getTime())
             self._rosTime = rospy.Time.now()
 
-            # Give time for ros to initialise
-            if not initialposepublished and self._rosTime.secs >= 5:
-                initialposepublished = self._publishInitialPose(initialPosePublisher)
+            # Give time for ROS to initialise
+            if initialPosePublishCount >= 0 and abs(initialPosePublishedAt - self._rosTime.secs) >= 5:
+                initialPosePublishCount -= int(self._publishInitialPose(initialPosePublisher))
+                initialPosePublishedAt = self._rosTime.nsecs
 
             self._updateLocation()
             self._updateLaser()
