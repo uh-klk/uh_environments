@@ -108,8 +108,7 @@ class Sunflower(Robot):
         if self._sensors.get('gps', None) and self._sensors.get('compass', None):
             lX, lY, lZ = self._sensors['gps'].getValues()
 
-            # if 'imu' in self._sensors:
-            if False:
+            if 'imu' in self._sensors:
                 roll, pitch, yaw = self._sensors['imu'].getRollPitchYaw()
 
                 # certain 'right handed' rotations don't seem to be matching up between ros and webots
@@ -321,22 +320,17 @@ class Sunflower(Robot):
     def run(self):
         try:
             # ROS Version >= Hydro
-            # sonarPublisher = rospy.Publisher(self._namespace + 'sonar', SonarArray, queue_size=2)
             odomPublisher = rospy.Publisher(self._namespace + 'odom', Odometry, queue_size=2)
             posePublisher = rospy.Publisher(self._namespace + 'pose', Odometry, queue_size=2)
-            laserPublisher = rospy.Publisher(
-                self._namespace + 'scan_front', LaserScan, queue_size=2)
-            # clockPublisher = rospy.Publisher('/clock', Clock, queue_size=2)
+            laserPublisher = rospy.Publisher(self._namespace + 'scan_front', LaserScan, queue_size=2)
             jointPublisher = rospy.Publisher(self._namespace + 'joint_states', JointState, queue_size=2)
             initialPosePublisher = rospy.Publisher(self._namespace + 'initialpose', PoseWithCovarianceStamped, queue_size=2)
             dynamixelPublishers = {name: rospy.Publisher(
                 self._namespace + '%s_controller/state' % name, DynJointState, queue_size=2) for name in self._servos.iterkeys()}
         except:
-            # sonarPublisher = rospy.Publisher(self._namespace + 'sonar', SonarArray)
             odomPublisher = rospy.Publisher(self._namespace + 'odom', Odometry)
             posePublisher = rospy.Publisher(self._namespace + 'pose', Odometry)
             laserPublisher = rospy.Publisher(self._namespace + 'scan_front', LaserScan)
-            # clockPublisher = rospy.Publisher('/clock', Clock)
             jointPublisher = rospy.Publisher(self._namespace + 'joint_states', JointState)
             initialPosePublisher = rospy.Publisher(self._namespace + 'initialpose', PoseWithCovarianceStamped)
             dynamixelPublishers = {name: rospy.Publisher(self._namespace + '%s_controller/state' % name, DynJointState) for name in self._servos.iterkeys()}
@@ -356,15 +350,14 @@ class Sunflower(Robot):
             self._updateLocation()
             self._updateSonar()
             self._updateLaser()
+
             self._publishPose(posePublisher)
+
             self._publishOdom(odomPublisher)
             self._publishOdomTransform(odomTransform)
-            # Published by robot_joint_publisher
-            # self._publishLaserTransform(laserTransform)
-            # Published by sf_navigation
-            # self._publishLocationTransform(locationTransform)
-            # self._publishSonar(sonarPublisher)
+
             self._publishLaser(laserPublisher)
+
             self._publishJoints(jointPublisher, dynamixelPublishers)
 
             # It appears that we have to call sleep for ROS to process messages

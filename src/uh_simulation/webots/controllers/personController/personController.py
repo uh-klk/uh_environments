@@ -184,15 +184,12 @@ class Person(Robot):
 
     def _publishOdomTransform(self, odomPublisher):
         if self._location:
-            if not any(math.isnan(float(x)) for x in [self._location.x, self._location.y, self._location.z]):
-                odomPublisher.sendTransform(
-                    (self._location.x, self._location.y, self._location.z),
-                    quaternion_from_euler(self._location.roll, self._location.pitch, self._location.yaw),
-                    self._rosTime,
-                    self._namespace + 'base_link',
-                    self._namespace + 'odom')
-            else:
-                rospy.logwarn("Nan in location: %s" % (self._location))
+            odomPublisher.sendTransform(
+                (self._location.x, self._location.y, self._location.z),
+                quaternion_from_euler(self._location.roll, self._location.pitch, self._location.yaw),
+                self._rosTime,
+                self._namespace + 'base_link',
+                self._namespace + 'odom')
 
     def _publishLocationTransform(self, locationPublisher):
         if self._location:
@@ -219,12 +216,12 @@ class Person(Robot):
                 self._namespace + 'scan_back',
                 self._namespace + 'base_laser_back_link')
 
-    def _publishOdom(self, odomPublisher, frame_id='odom', child_frame='base_link'):
+    def _publishOdom(self, odomPublisher):
         if self._location:
             msg = Odometry()
             msg.header.stamp = self._rosTime
-            msg.header.frame_id = self._namespace + frame_id
-            msg.child_frame_id = self._namespace + child_frame
+            msg.header.frame_id = self._namespace + 'odom'
+            msg.child_frame_id = self._namespace + 'base_link'
 
             msg.pose.pose.position.x = self._location.x
             msg.pose.pose.position.y = self._location.y
@@ -259,17 +256,16 @@ class Person(Robot):
             msg.pose.pose.orientation.z = orientation[2]
             msg.pose.pose.orientation.w = orientation[3]
 
-            rospy.logerr("Person-InitialPose: %s", msg)
             posePublisher.publish(msg)
             return True
         return False
 
-    def _publishPose(self, posePublisher, frame_id='odom', child_frame='base_link'):
+    def _publishPose(self, posePublisher):
         if self._location:
             msg = Odometry()
             msg.header.stamp = self._rosTime
-            msg.header.frame_id = self._namespace + frame_id
-            msg.child_frame_id = self._namespace + child_frame
+            msg.header.frame_id = self._namespace + 'odom'
+            msg.child_frame_id = self._namespace + 'base_link'
 
             msg.pose.pose.position.x = self._location.x
             msg.pose.pose.position.y = self._location.y
@@ -357,7 +353,6 @@ class Person(Robot):
             jointPublisher = rospy.Publisher(self._namespace + 'joint_states', JointState)
             initialPosePublisher = rospy.Publisher(self._namespace + 'initialpose', PoseWithCovarianceStamped)
         odomTransform = TransformBroadcaster()
-        # laserTransform = TransformBroadcaster()
 
         initialPosePublishCount = 5
         initialPosePublishedAt = 0
@@ -374,13 +369,14 @@ class Person(Robot):
             self._updateLaser()
 
             self._publishPose(posePublisher)
+
             self._publishOdom(odomPublisher)
+            self._publishOdomTransform(odomTransform)
+
             self._publishLaser(frontLaserPublisher, 'frontLaser')
             self._publishLaser(backLaserPublisher, 'backLaser')
-            self._publishJoints(jointPublisher)
 
-            self._publishOdomTransform(odomTransform)
-            # self._publishLaserTransform(laserTransform)
+            self._publishJoints(jointPublisher)
 
             # It appears that we have to call sleep for ROS to process messages
             time.sleep(0.0001)
