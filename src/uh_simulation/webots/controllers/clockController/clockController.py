@@ -35,12 +35,13 @@ else:
     import rospy
     from rosgraph_msgs.msg import Clock
 
+
 class ClockSync(Robot):
 
     def __init__(self):
         super(ClockSync, self).__init__()
         self._timeStep = int(self.getBasicTimeStep())
-        
+
         self._minHand = self.getMotor('clock_min')
         self._minHand.setPosition(0)
 
@@ -55,13 +56,14 @@ class ClockSync(Robot):
 
         starttime = time.time()
         TWO_PI = math.pi * 2
+        OFFSET = math.pi / 2
         convFact = TWO_PI / -60
 
         while not rospy.is_shutdown() and self.step(self._timeStep) != -1:
             rosTime = rospy.Time(self.getTime() + starttime)
             clock = Clock(clock=rosTime)
             clockPublisher.publish(clock)
-            self._minHand.setPosition((rosTime.to_sec() % 60) * convFact)
+            self._minHand.setPosition(((rosTime.to_sec() % 60) * convFact) - OFFSET)
             time.sleep(0.001)
 
 if __name__ == '__main__':

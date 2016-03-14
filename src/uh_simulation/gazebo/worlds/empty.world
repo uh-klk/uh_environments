@@ -1,6 +1,10 @@
 <?xml version="1.0" ?>
 <sdf version="1.4">
 	<world name="default">
+		<scene>
+			<ambient>0.5 0.5 0.5 1.0</ambient>
+			<shadows>0</shadows>
+		</scene>
 		<physics type="ode">
 			<gravity>0.000000 0.000000 -9.800000</gravity>
 			<ode>
@@ -20,9 +24,6 @@
 			<max_step_size>0.004</max_step_size>
 		</physics>
 		<!-- A global light source -->
-		<include>
-			<uri>model://sun</uri>
-		</include>
 		<include>
 			<uri>model://ground_plane</uri>
 		</include>

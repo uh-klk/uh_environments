@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+	<xacro:macro name="walls" params="name parent *origin">
+		<joint name="${name}_joint" type="fixed">
+			<insert_block name="origin" />
+			<parent link="${parent}" />
+			<child link="${name}_link" />
+		</joint>
+		<link name="${name}_link">
+			<visual name="${name}_visual">
+				<cast_shadows>false</cast_shadows>
+				<geometry>
+					<mesh filename="package://uh_environments/uh-robot-house/models/robot_house_walls.dae" />
+				</geometry>
+			</visual>
+			<inertial>
+				<mass value="1000" />
+				<inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
+			</inertial>
+			<!-- TODO: Gazebo collisions seem not to take into account 'hollow' boxes -->
+			<!-- Using the floor collision geometry as a placeholder -->
+<!-- 			<collision name="${name}_collision"> -->
+<!-- 				<geometry> -->
+<!-- 					<mesh filename="package://uh_environments/uh-robot-house/models/robot_house_walls.dae" /> -->
+<!-- 				</geometry> -->
+<!-- 			</collision> -->
+		</link>
+	</xacro:macro>
+</robot>

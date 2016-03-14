@@ -8,5 +8,5 @@
 		<remap from="joint_states" to="world/joint_states" />
 	</node>
 
-	<node pkg="tf" type="static_transform_publisher" name="world_link" args="0 0 0 3.14159 0 0 /map world 100" />
+	<node pkg="tf" type="static_transform_publisher" name="world" args="0 0 -0.01 3.14159 0 0 /map world 100" />
 </launch>

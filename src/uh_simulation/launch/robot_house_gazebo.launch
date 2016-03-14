@@ -8,13 +8,12 @@
 	<!-- set use_sim_time flag -->
 	<param name="/use_sim_time" value="$(arg use_sim_time)" />
 
-	<!--  -->
+	<!--  
 	<include file="$(find gazebo_ros)/launch/empty_world.launch">
 		<arg name="world_name" value="$(find uh_simulation)/gazebo/worlds/robot_house.world" />
-	</include>
+	</include>-->
 	
 	<!-- start world -->
-	<!-- 
 	<include file="$(find gazebo_ros)/launch/empty_world.launch">
 		<arg name="world_name" value="$(find uh_simulation)/gazebo/worlds/empty.world" />
 	</include>
@@ -23,7 +22,7 @@
 	</include>
 
 	<node name="spawn_world_model" pkg="gazebo_ros" type="spawn_model"
-		args="-urdf -param world_description -x 0 -y 0 -z -0.1 -R 0.0 -P 0.0 -Y 0 -model $(arg world)" respawn="false" output="screen" /> -->
+		args="-urdf -param world_description -x 0 -y 0 -z 0.01 -R 0.0 -P 0.0 -Y 0 -model $(arg world)" respawn="false" output="screen" />
 
 <!-- 	<node name="spawn_robot_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param $(arg robot_description) -model $(arg robot) -z 0.1" -->
 <!-- 	respawn="false" output="screen" /> -->
