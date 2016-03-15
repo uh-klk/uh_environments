@@ -1,0 +1,13 @@
+<!-- -*- mode: XML -*- -->
+
+<launch>
+	<arg name="env" default="uh-robot-house" />
+	<arg name="nav" default="2dnav_ros_dwa" />
+	<arg name="robot" default="$(optenv ROBOT !!NO_ROBOT_SET!!)"/>
+
+	<include file="$(find cob_navigation_global)/launch/$(arg nav).launch">
+		<arg name="robot" value="$(arg robot)"/>
+		<arg name="map" value="$(find uh_environments)/$(arg env)/map/map.yaml"/>
+	</include>
+</launch>
+
