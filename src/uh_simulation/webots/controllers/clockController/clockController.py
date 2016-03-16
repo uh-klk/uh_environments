@@ -42,8 +42,8 @@ class ClockSync(Robot):
         super(ClockSync, self).__init__()
         self._timeStep = int(self.getBasicTimeStep())
 
-        self._minHand = self.getMotor('clock_min')
-        self._minHand.setPosition(0)
+        self._secHand = self.getMotor('clock_sec')
+        self._secHand.setPosition(0)
 
     def run(self):
         # We only want one clock publisher
@@ -55,15 +55,13 @@ class ClockSync(Robot):
             clockPublisher = rospy.Publisher('/clock', Clock)
 
         starttime = time.time()
-        TWO_PI = math.pi * 2
-        OFFSET = math.pi / 2
-        convFact = TWO_PI / -60
+        convFact = (math.pi * 2) / -60
 
         while not rospy.is_shutdown() and self.step(self._timeStep) != -1:
             rosTime = rospy.Time(self.getTime() + starttime)
             clock = Clock(clock=rosTime)
             clockPublisher.publish(clock)
-            self._minHand.setPosition(((rosTime.to_sec() % 60) * convFact) - OFFSET)
+            self._secHand.setPosition(round(rosTime.to_sec() % 60) * convFact)
             time.sleep(0.001)
 
 if __name__ == '__main__':

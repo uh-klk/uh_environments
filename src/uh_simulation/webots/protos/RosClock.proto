@@ -2,7 +2,7 @@
 # Basic model of a person
 
 PROTO RosClock [  
-	field SFVec3f translation 0 0.0975 0 
+	field SFVec3f translation 0 0 0 
 	field SFRotation rotation 0 1 0 0 
 	field SFString name "rosClock"
 	field SFString controller "void"
@@ -23,7 +23,7 @@ DEF ROSCLOCK Robot {
         height 0.05
         radius 0.15
         top FALSE
-        subdivision 24
+        subdivision 48
       }
     }
     Shape {
@@ -37,23 +37,29 @@ DEF ROSCLOCK Robot {
           repeatS FALSE
           repeatT FALSE
         }
+        textureTransform TextureTransform {
+		  translation 0 0
+		  rotation 1.57079
+		  center -0.5 -0.5
+        }
       }
       geometry Cylinder {
         height 0.05
         radius 0.15
         side FALSE
-        subdivision 24
+        subdivision 48
       }
     }
     Transform {
       translation 0 0.03 0
+	  rotation 0 1 0 1.57079
       children [
         HingeJoint {
           jointParameters HingeJointParameters {
             axis 0 1 0
           }
           device RotationalMotor {
-            name "clock_min"
+            name "clock_sec"
 			minPosition 0
 			maxPosition 0
           }
