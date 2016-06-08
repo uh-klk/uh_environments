@@ -1,0 +1,10 @@
+<!-- -*- mode: XML -*- -->
+
+<launch>
+	<arg name="frame_id" default="map" />
+    
+	<!-- Run the map server -->
+	<node name="map_server" pkg="map_server" type="map_server" args="$(find uh_environments)/uh-e125/map/map.yaml">
+		<param name="frame_id" value="$(arg frame_id)" />
+	</node>
+</launch>

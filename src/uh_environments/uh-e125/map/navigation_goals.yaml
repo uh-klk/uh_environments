@@ -1,0 +1,5 @@
+#[x,y,theta]
+home: [0, 0, 0]
+order: [0,0, 0]
+kitchen: [0,0, 0]
+bookcase: [0,0,0]
